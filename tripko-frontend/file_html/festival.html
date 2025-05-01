@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TripKo Pangasinan - Festivals</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather&display=swap" rel="stylesheet" />
+ <link rel="stylesheet" href="../file_css/dashboard.css" />
+
+</head>
+<body class="bg-white text-gray-900">
+  <div class="flex min-h-screen">
+ <!-- Sidebar -->
+<aside class="flex flex-col justify-between bg-[#255D8A] w-64 p-6 text-white">
+  <div>
+    <div class="flex items-center gap-3 mb-10">
+      <div class="rounded-full border border-white p-2">
+        <i class="fas fa-user-circle text-3xl"></i>
+      </div>
+      <div class="font-semibold text-lg leading-tight">
+        TripKo<br />Pangasinan
+      </div>
+    </div>
+    <nav class="flex flex-col space-y-5 text-sm font-semibold">
+      <a href="../file_html/dashboard.php" class="nav-link">
+        <i class="fas fa-home text-white text-lg"></i> Dashboard
+      </a>
+      <a href="../file_html/tourist_spot.php" class="nav-link">
+        <i class="fas fa-umbrella-beach text-white text-lg"></i> Tourist Spots
+      </a>
+      <a href="../file_html/itineraries.html" class="nav-link">
+        <i class="fas fa-map-marker-alt text-white text-lg"></i> Itineraries
+      </a>
+      <a href="../file_html/festival.html" class="nav-link">
+        <i class="fas fa-carrot text-white text-lg"></i> Festivals
+      </a>
+      <a href="#" class="nav-link active" onclick="toggleTransportDropdown(event)">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <i class="fas fa-bus text-white text-lg"></i>
+            <span class="ml-2">Transportation</span>
+          </div>
+          <i class="fas fa-chevron-down text-sm transition-transform" id="transportDropdownIcon"></i>
+        </div>
+      </a>
+      <div id="transportDropdown" class="hidden pl-8 mt-2 space-y-2">
+        <a href="terminal-locations.html" class="nav-link">
+          <i class="fas fa-map-marker-alt text-white text-lg"></i>
+          <span class="ml-2">Terminals</span>
+        </a>
+        <a href="terminal-routes.html" class="nav-link">
+          <i class="fas fa-route text-white text-lg"></i>  
+          <span class="ml-2">Routes & Types</span>
+        </a>
+      </div>
+      <a href="../file_html/fare.html" class="nav-link">
+        <i class="fas fa-money-bill-wave text-white text-lg"></i> Fare
+      </a>
+      <a href="#" class="nav-link">
+        <i class="fas fa-user-friends text-white text-lg"></i> Users
+      </a>
+      <a href="../file_html/reports.php" class="nav-link">
+        <i class="fas fa-chart-bar text-white text-lg"></i> Reports
+      </a>
+      <a href="../../tripko-backend/config/confirm_logout.php" class="nav-link">
+        <i class="fas fa-sign-out-alt text-white text-lg"></i> Sign Out
+      </a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 font-semibold">
+    <div class="rounded-full border border-white p-2">
+      <i class="fas fa-user-circle text-3xl"></i>
+    </div>
+    <div>
+      Administrator<br />
+      <span class="text-sm">Administrator</span>
+    </div>
+  </div>
+</aside>
+
+    <!-- Main content -->
+    <main class="flex-1 bg-[#F3F1E7] p-6">
+      <header class="flex items-center justify-between mb-6">
+        <span class="font-semibold text-xl">Festivals</span>
+        <button onclick="openModal()" class="bg-[#255D8A] text-white px-4 py-2 rounded-md hover:bg-[#1e4d70] transition-colors">
+          + Add new festival
+        </button>
+      </header>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="festivalGrid">
+        <!-- Festival cards will go here -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Add New Festival Modal (moved outside the flex container) -->
+  <div id="addFestivalModal" class="fixed inset-0 hidden z-50">
+    <div class="bg-black bg-opacity-50 absolute inset-0"></div>
+    <div class="relative flex items-center justify-center min-h-screen p-4">
+      <div class="form-container bg-white relative z-10 p-8 rounded shadow-lg w-full max-w-lg">
+        <button type="button" class="absolute right-4 top-4 text-gray-500 hover:text-gray-700" onclick="closeModal()">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+        <form id="festivalForm">
+          <div class="form-group mb-4">
+            <label for="festival-name">Festival Name <span class="required">*</span></label>
+            <input type="text" id="festival-name" name="name" required class="w-full border rounded px-3 py-2" />
+          </div>
+        
+          <div class="form-group mb-4">
+            <label for="festival-description">Description <span class="required">*</span></label>
+            <textarea id="festival-description" name="description" rows="4" required class="w-full border rounded px-3 py-2"></textarea>
+          </div>
+        
+          <div class="form-row flex gap-4 mb-4">
+            <div class="form-group flex-1">
+              <label for="festival-date">Date <span class="required">*</span></label>
+              <input type="date" id="festival-date" name="date" required class="w-full border rounded px-3 py-2" />
+            </div>
+            <div class="form-group flex-1">
+              <label for="municipality">Municipality <span class="required">*</span></label>
+              <select id="municipality" name="municipality" required class="w-full border rounded px-3 py-2">
+                <option value="" disabled selected>Loading...</option>
+              </select>
+            </div>
+          </div>
+        
+          <div class="form-group upload-box mb-4">
+            <div class="upload-area cursor-pointer" id="uploadArea" onclick="document.getElementById('festivalImage').click()">
+              <i class="fas fa-plus-circle"></i>
+              <p>Upload Festival Images</p>
+              <span>PNG, JPG or JPEG</span>
+              <input type="file" id="festivalImage" name="image" accept="image/png, image/jpeg" class="hidden" />
+              <div id="selectedFile" class="text-xs text-gray-600 mt-2"></div>
+            </div>
+          </div>
+        
+          <div class="form-buttons flex justify-end gap-2">
+            <button type="button" class="btn cancel px-4 py-2 rounded bg-gray-300" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn save px-4 py-2 rounded bg-[#255D8A] text-white">Save</button>
+          </div>
+        </form>
+        
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+function toggleTransportDropdown(event) {
+  event.preventDefault();
+  const dropdown = document.getElementById('transportDropdown');
+  const icon = document.getElementById('transportDropdownIcon');
+  dropdown.classList.toggle('hidden');
+  icon.classList.toggle('rotate-180');
+}
+    // Open/close modal
+    function openModal() {
+      document.getElementById('addFestivalModal').classList.remove('hidden');
+    }
+    function closeModal() {
+      document.getElementById('addFestivalModal').classList.add('hidden');
+    }
+  
+    // Fetch and display festivals
+    async function loadFestivals() {
+      const grid = document.getElementById('festivalGrid');
+  
+      try {
+        const res = await fetch('../../tripko-backend/api/festival/read.php');
+        const data = await res.json();
+  
+        if (!data.records || !Array.isArray(data.records) || data.records.length === 0) {
+          grid.innerHTML = `
+            <div class="col-span-full text-center py-8 text-gray-500">
+              <i class="fas fa-inbox text-4xl mb-3 block"></i>
+              <p>No festivals found</p>
+            </div>
+          `;
+          return;
+        }
+  
+        grid.innerHTML = ''; // clear grid
+        data.records.forEach(f => {
+          const card = document.createElement('div');
+          card.className = 'bg-white rounded-lg shadow-md border border-gray-200 flex flex-col h-full group hover:shadow-xl transition-all duration-300 hover:-translate-y-1';
+          card.innerHTML = `
+            <div class="relative w-full h-56 bg-gray-100 flex items-center justify-center overflow-hidden">
+              ${f.image_path
+                ? `<img src="/TripKo-System/uploads/${f.image_path}"
+                       alt="${f.name}"
+                       class="w-full h-full object-cover transition-all duration-500 group-hover:scale-110" />`
+                : `<span class="text-gray-400 text-6xl"><i class="fas fa-image"></i></span>`
+              }
+            </div>
+            <div class="flex-1 flex flex-col p-5">
+              <div class="mb-3">
+                <span class="inline-block bg-[#255D8A] text-white text-xs px-3 py-1 rounded-full font-semibold">${f.town_name || 'Unknown'}</span>
+              </div>
+              <h3 class="text-lg font-bold mb-2 text-[#255D8A] line-clamp-2">${f.name}</h3>
+              <p class="text-sm text-gray-700 mb-3 line-clamp-3">${f.description}</p>
+              <p class="text-xs text-gray-500 mt-auto flex items-center">
+                <i class="fas fa-calendar-alt mr-2"></i>${f.date}
+              </p>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (err) {
+        console.error('Failed to load festivals:', err);
+      }
+    }
+  
+    document.addEventListener('DOMContentLoaded', () => {
+  const fileInput = document.getElementById('festivalImage');
+  const selectedFile = document.getElementById('selectedFile');
+  if (fileInput && selectedFile) {
+    fileInput.addEventListener('change', function() {
+      if (this.files && this.files.length > 0) {
+        selectedFile.textContent = `Selected: ${this.files[0].name}`;
+      } else {
+        selectedFile.textContent = '';
+      }
+    });
+  }
+
+  // Dynamically load municipalities
+  fetch('../../tripko-backend/api/towns/read.php')
+    .then(res => res.json())
+    .then(data => {
+      console.log(data); // For debugging
+      const select = document.getElementById('municipality');
+      if (data.records && Array.isArray(data.records)) {
+        select.innerHTML = '<option value="" disabled selected>Select municipality</option>';
+        data.records.forEach(town => {
+          const opt = document.createElement('option');
+          opt.value = town.town_id;
+          opt.textContent = town.name;
+          select.appendChild(opt);
+        });
+      } else {
+        select.innerHTML = '<option disabled selected>No data</option>';
+      }
+    })
+    .catch(() => {
+      const select = document.getElementById('municipality');
+      select.innerHTML = '<option disabled selected>Error loading</option>';
+    });
+
+  // Form submit handler
+  const form = document.getElementById('festivalForm');
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const fileInput = form.querySelector('input[type="file"]');
+    if (fileInput && fileInput.files.length) {
+      formData.append('image', fileInput.files[0]);
+    }
+    try {
+      const res = await fetch('../../tripko-backend/api/festival/create.php', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert('Festival added!');
+        form.reset();
+        closeModal();
+        loadFestivals();
+      } else {
+        alert('Failed to add festival: ' + (result.message || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  });
+
+  // Initial load of festivals
+  loadFestivals();
+});
+
+  </script>
+  
+</body>
+</html>

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TripKo Pangasinan - Fare Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../file_css/dashboard.css" />
+</head>
+<body class="bg-white text-gray-900">
+  <div class="flex min-h-screen">
+     <!-- Sidebar -->
+<aside class="flex flex-col justify-between bg-[#255D8A] w-64 p-6 text-white">
+  <div>
+    <div class="flex items-center gap-3 mb-10">
+      <div class="rounded-full border border-white p-2">
+        <i class="fas fa-user-circle text-3xl"></i>
+      </div>
+      <div class="font-semibold text-lg leading-tight">
+        TripKo<br />Pangasinan
+      </div>
+    </div>
+    <nav class="flex flex-col space-y-5 text-sm font-semibold">
+      <a href="../file_html/dashboard.php" class="nav-link">
+        <i class="fas fa-home text-white text-lg"></i> Dashboard
+      </a>
+      <a href="../file_html/tourist_spot.php" class="nav-link">
+        <i class="fas fa-umbrella-beach text-white text-lg"></i> Tourist Spots
+      </a>
+      <a href="../file_html/itineraries.html" class="nav-link">
+        <i class="fas fa-map-marker-alt text-white text-lg"></i> Itineraries
+      </a>
+      <a href="../file_html/festival.html" class="nav-link">
+        <i class="fas fa-carrot text-white text-lg"></i> Festivals
+      </a>
+      <a href="#" class="nav-link active" onclick="toggleTransportDropdown(event)">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <i class="fas fa-bus text-white text-lg"></i>
+            <span class="ml-2">Transportation</span>
+          </div>
+          <i class="fas fa-chevron-down text-sm transition-transform" id="transportDropdownIcon"></i>
+        </div>
+      </a>
+      <div id="transportDropdown" class="hidden pl-8 mt-2 space-y-2">
+        <a href="terminal-locations.html" class="nav-link">
+          <i class="fas fa-map-marker-alt text-white text-lg"></i>
+          <span class="ml-2">Terminals</span>
+        </a>
+        <a href="terminal-routes.html" class="nav-link">
+          <i class="fas fa-route text-white text-lg"></i>  
+          <span class="ml-2">Routes & Types</span>
+        </a>
+      </div>
+      <a href="../file_html/fare.html" class="nav-link">
+        <i class="fas fa-money-bill-wave text-white text-lg"></i> Fare
+      </a>
+      <a href="#" class="nav-link">
+        <i class="fas fa-user-friends text-white text-lg"></i> Users
+      </a>
+      <a href="../file_html/reports.php" class="nav-link">
+        <i class="fas fa-chart-bar text-white text-lg"></i> Reports
+      </a>
+      <a href="../../tripko-backend/config/confirm_logout.php" class="nav-link">
+        <i class="fas fa-sign-out-alt text-white text-lg"></i> Sign Out
+      </a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 font-semibold">
+    <div class="rounded-full border border-white p-2">
+      <i class="fas fa-user-circle text-3xl"></i>
+    </div>
+    <div>
+      Administrator<br />
+      <span class="text-sm">Administrator</span>
+    </div>
+  </div>
+</aside>
+
+    <!-- Main content -->
+    <main class="flex-1 bg-[#F3F1E7] p-6">
+      <header class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3 text-gray-900 font-normal text-base">
+          <button aria-label="Menu" class="focus:outline-none">
+            <i class="fas fa-bars text-lg"></i>
+          </button>
+          <span>Fare Management</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <div>
+            <input type="search" placeholder="Search" class="w-48 md:w-64 rounded-full border border-gray-400 bg-[#F3F1E7] py-1.5 px-4 text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#255D8A]" />
+          </div>
+          <button aria-label="Notifications" class="text-black text-xl focus:outline-none">
+            <i class="fas fa-bell"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Fare Management Section -->
+      <section>
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="font-semibold text-xl">Fare Rates</h2>
+          <button onclick="openFareModal()" class="bg-[#255D8A] text-white px-4 py-2 rounded-md hover:bg-[#1e4d70] transition-colors">
+            + Add New Fare
+          </button>
+        </div>
+
+        <!-- Fare Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <table class="w-full border-collapse">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="border border-gray-300 px-4 py-2 text-left">From Terminal</th>
+                <th class="border border-gray-300 px-4 py-2 text-left">To Terminal</th>
+                <th class="border border-gray-300 px-4 py-2 text-left">Transport Type</th>
+                <th class="border border-gray-300 px-4 py-2 text-left">Category</th>
+                <th class="border border-gray-300 px-4 py-2 text-left">Fare Amount</th>
+                <th class="border border-gray-300 px-4 py-2 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fareTableBody">
+              <!-- Data will be injected here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Fare Modal -->
+  <div id="fareModal" class="fixed inset-0 hidden">
+    <div class="bg-black bg-opacity-50 absolute inset-0"></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+      <div class="form-container bg-white relative z-10">
+        <button type="button" class="absolute right-4 top-4 text-gray-500 hover:text-gray-700" onclick="closeFareModal()">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+        
+        <form onsubmit="handleFareSubmit(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label>From <span class="required">*</span></label>
+              <select id="from-terminal" required></select>
+            </div>
+
+            <div class="form-group">
+              <label>To <span class="required">*</span></label>
+              <select id="to-terminal" required></select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Transport Type <span class="required">*</span></label>
+            <select id="transport-type" required></select>
+          </div>
+
+          <div class="form-group">
+            <label>Category <span class="required">*</span></label>
+            <select id="category" required>
+              <option selected disabled>Select category</option>
+              <option>Regular</option>
+              <option>Student</option>
+              <option>Senior</option>
+              <option>PWD</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Estimated Fare <span class="required">*</span></label>
+            <textarea id="fare-amount" rows="1" required></textarea>
+          </div>
+
+          <div class="form-buttons">
+            <button type="button" class="btn cancel" onclick="closeFareModal()">Cancel</button>
+            <button type="submit" class="btn save">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+let terminals = [];
+let transportTypes = [];
+let fares = [];
+let editFareId = null;
+
+async function loadTerminals() {
+  try {
+    console.log('Loading terminals...');
+    const res = await fetch('/tripko-system/tripko-backend/api/terminal_locations/read.php');
+    const data = await res.json();
+    console.log('Terminal data:', data);
+    
+    terminals = data.records || [];
+    const fromSelect = document.getElementById('from-terminal');
+    const toSelect = document.getElementById('to-terminal');
+    
+    if (!fromSelect || !toSelect) {
+      console.error('Terminal select elements not found');
+      return;
+    }
+    
+    fromSelect.innerHTML = '<option selected disabled>Select terminal</option>';
+    toSelect.innerHTML = '<option selected disabled>Select terminal</option>';
+    
+    terminals.forEach(t => {
+      fromSelect.innerHTML += `
+        <option value="${t.terminal_id}">${t.name} (${t.town})</option>
+      `;
+      toSelect.innerHTML += `
+        <option value="${t.terminal_id}">${t.name} (${t.town})</option>
+      `;
+    });
+  } catch (error) {
+    console.error('Error loading terminals:', error);
+  }
+}
+
+async function loadTransportTypes() {
+  try {
+    console.log('Loading transport types...');
+    const res = await fetch('/tripko-system/tripko-backend/api/transportation_type/read.php');
+    const data = await res.json();
+    console.log('Transport types data:', data);
+    
+    transportTypes = data.records || [];
+    const typeSelect = document.getElementById('transport-type');
+    
+    if (!typeSelect) {
+      console.error('Transport type select element not found');
+      return;
+    }
+    
+    typeSelect.innerHTML = '<option selected disabled>Select type</option>';
+    transportTypes.forEach(t => {
+      typeSelect.innerHTML += `
+        <option value="${t.transport_type_id}">${t.type}</option>
+      `;
+    });
+  } catch (error) {
+    console.error('Error loading transport types:', error);
+  }
+}
+
+async function loadFares() {
+  try {
+    const res = await fetch('/tripko-system/tripko-backend/api/fares/read.php');
+    const data = await res.json();
+    fares = data.records || [];
+    const tbody = document.getElementById('fareTableBody');
+    tbody.innerHTML = '';
+    fares.forEach(fare => {
+      tbody.innerHTML += `
+        <tr>
+          <td class="border border-gray-300 px-4 py-2">${fare.from_terminal_name} (${fare.from_town})</td>
+          <td class="border border-gray-300 px-4 py-2">${fare.to_terminal_name} (${fare.to_town})</td>
+          <td class="border border-gray-300 px-4 py-2">${fare.transport_type_name}</td>
+          <td class="border border-gray-300 px-4 py-2">${fare.category}</td>
+          <td class="border border-gray-300 px-4 py-2">₱${fare.amount}</td>
+          <td class="border border-gray-300 px-4 py-2 text-center">
+            <button onclick="editFare(${fare.fare_id})" class="bg-green-600 text-white px-2 py-1 rounded text-sm hover:bg-green-700">Edit</button>
+            <button onclick="deleteFare(${fare.fare_id})" class="bg-red-600 text-white px-2 py-1 rounded text-sm ml-2 hover:bg-red-700">Delete</button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (error) {
+    console.error('Error loading fares:', error);
+  }
+}
+
+function openFareModal(isEdit = false) {
+  document.getElementById('fareModal').classList.remove('hidden');
+  if (!isEdit) {
+    editFareId = null;
+    document.getElementById('from-terminal').value = '';
+    document.getElementById('to-terminal').value = '';
+    document.getElementById('transport-type').value = '';
+    document.getElementById('category').value = '';
+    document.getElementById('fare-amount').value = '';
+  }
+}
+
+function closeFareModal() {
+  document.getElementById('fareModal').classList.add('hidden');
+}
+
+async function handleFareSubmit(event) {
+  event.preventDefault();
+  
+  try {
+    const fromTerminal = document.getElementById('from-terminal').value;
+    const toTerminal = document.getElementById('to-terminal').value;
+    const transportType = document.getElementById('transport-type').value;
+    const category = document.getElementById('category').value;
+    const amount = document.getElementById('fare-amount').value;
+
+    // Validate inputs
+    if (!fromTerminal || fromTerminal === 'Select terminal') {
+      throw new Error('Please select a departure terminal');
+    }
+    if (!toTerminal || toTerminal === 'Select terminal') {
+      throw new Error('Please select a destination terminal');
+    }
+    if (!transportType || transportType === 'Select type') {
+      throw new Error('Please select a transport type');
+    }
+    if (!category || category === 'Select category') {
+      throw new Error('Please select a category');
+    }
+    if (!amount || isNaN(parseFloat(amount))) {
+      throw new Error('Please enter a valid fare amount');
+    }
+
+    const data = {
+      from_terminal_id: parseInt(fromTerminal),
+      to_terminal_id: parseInt(toTerminal),
+      transport_type_id: parseInt(transportType),
+      category: category,
+      amount: parseFloat(amount)
+    };
+    
+    console.log('Submitting fare data:', data);
+
+    const url = editFareId 
+      ? '/tripko-system/tripko-backend/api/fares/update.php'
+      : '/tripko-system/tripko-backend/api/fares/create.php';
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(editFareId ? {...data, fare_id: editFareId} : data)
+    });
+
+    const result = await response.json();
+    console.log('API Response:', result);
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to save fare');
+    }
+
+    await loadFares();
+    closeFareModal();
+    
+  } catch (error) {
+    console.error('Error submitting fare:', error);
+    alert(error.message || 'Failed to save fare. Please try again.');
+  }
+}
+
+function editFare(id) {
+  const fare = fares.find(f => f.fare_id == id);
+  if (!fare) return;
+  editFareId = id;
+  document.getElementById('from-terminal').value = fare.from_terminal_id;
+  document.getElementById('to-terminal').value = fare.to_terminal_id;
+  document.getElementById('transport-type').value = fare.transport_type_id;
+  document.getElementById('category').value = fare.category;
+  document.getElementById('fare-amount').value = fare.amount;
+  openFareModal(true);
+}
+
+async function deleteFare(id) {
+  if(confirm('Are you sure you want to delete this fare?')) {
+    await fetch('/tripko-system/tripko-backend/api/fares/delete.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ fare_id: id })
+    });
+    loadFares();
+  }
+}
+
+async function initializePage() {
+    try {
+        await Promise.all([
+            loadTerminals(),
+            loadTransportTypes(),
+            loadFares()
+        ]);
+        console.log('Initialization complete');
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
+}
+
+// Transport dropdown toggle
+function toggleTransportDropdown(event) {
+    event.preventDefault();
+    const dropdown = document.getElementById('transportDropdown');
+    const icon = document.getElementById('transportDropdownIcon');
+    dropdown.classList.toggle('hidden');
+    icon.classList.toggle('rotate-180');
+}
+
+document.addEventListener('DOMContentLoaded', initializePage);
+  </script>
+</body>
+</html>
