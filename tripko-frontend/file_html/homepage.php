@@ -835,20 +835,25 @@ if (!isLoggedIn()) {
             
             if (!$conn) {
                 throw new Exception("Failed to establish database connection");
-            }            $sql = "SELECT 
+            }            // Improved SQL query with better image validation and tourist spot count
+            $sql = "SELECT 
                         t.town_id,
                         t.town_name,
-                        GROUP_CONCAT(DISTINCT ts.category SEPARATOR ', ') as categories,
-                        t.image_path
+                        t.description,
+                        t.image_path,
+                        COUNT(DISTINCT ts.spot_id) as spot_count,
+                        GROUP_CONCAT(DISTINCT ts.category SEPARATOR ', ') as categories
                     FROM towns t
-                    LEFT JOIN tourist_spots ts ON t.town_id = ts.town_id AND ts.status = 'active'
-                    WHERE t.image_path IS NOT NULL 
-                    AND t.image_path != ''
-                    GROUP BY t.town_id, t.town_name, t.image_path
-                    WHERE t.image_path IS NOT NULL 
-                    AND t.image_path != ''
-                    ORDER BY t.town_name ASC
-                    LIMIT 9";
+                    LEFT JOIN tourist_spots ts ON t.town_id = ts.town_id 
+                        AND ts.status = 'active'
+                        AND ts.image_path IS NOT NULL 
+                    WHERE t.status = 'active'
+                        AND t.image_path IS NOT NULL 
+                        AND t.image_path != ''
+                    GROUP BY t.town_id, t.town_name, t.description, t.image_path
+                    HAVING spot_count > 0
+                    ORDER BY spot_count DESC, t.town_name ASC
+                    LIMIT 12";
             
             $stmt = $conn->prepare($sql);
             if (!$stmt) {
@@ -864,36 +869,53 @@ if (!isLoggedIn()) {
             if (!$result) {
                 throw new Exception("Failed to get result: " . $conn->error);
             }
+            
+            if (!$result) {
+                throw new Exception("Failed to get result: " . $conn->error);
+            }
             $hasResults = false;
-            $displayedMunicipalities = [];
-            while ($muni = $result->fetch_assoc()) {
+            $displayedMunicipalities = [];            while ($muni = $result->fetch_assoc()) {
                 $image_path = trim($muni['image_path']);
-                // Convert relative path to absolute path for validation
-                $image_file = realpath(__DIR__ . "/../uploads/" . $image_path);
                 $uploads_dir = realpath(__DIR__ . "/../uploads");
+                $image_file = $uploads_dir . DIRECTORY_SEPARATOR . $image_path;
                 
                 // Validate image path and ensure it's within uploads directory
-                if (!empty($image_path) && 
-                    $image_file !== false && 
-                    file_exists($image_file) && 
-                    is_file($image_file) && 
-                    strpos($image_file, $uploads_dir) === 0) {
+                if (!empty($image_path) && file_exists($image_file) && is_file($image_file)) {
                     $hasResults = true;
                     $town_name = htmlspecialchars($muni['town_name'], ENT_QUOTES, 'UTF-8');
                     $town_id = (int)$muni['town_id'];
-                    $categories = htmlspecialchars($muni['categories'], ENT_QUOTES, 'UTF-8');
-            ?>                <div class="card" data-category="municipality">                    <div class="relative">                        <?php
-                            $image_url = "../uploads/" . htmlspecialchars($image_path, ENT_QUOTES, 'UTF-8');
-                        ?>
-                        <img src="<?php echo $image_url; ?>" 
-                             alt="<?php echo htmlspecialchars($town_name, ENT_QUOTES, 'UTF-8'); ?>"
+                    $categories = explode(', ', $muni['categories']);
+                    $description = htmlspecialchars($muni['description'], ENT_QUOTES, 'UTF-8');
+                    $spot_count = (int)$muni['spot_count'];
+                    
+                    // Generate category tags
+                    $category_tags = array_slice($categories, 0, 3); // Show up to 3 categories
+            ?>
+                <div class="card" data-category="municipality">
+                    <div class="relative">
+                        <img src="../uploads/<?php echo htmlspecialchars($image_path, ENT_QUOTES, 'UTF-8'); ?>" 
+                             alt="<?php echo $town_name; ?>"
                              loading="lazy"
-                             onerror="this.onerror=null; this.src='../assets/images/default-municipality.jpg';"
+                             onerror="this.onerror=null; this.src='../images/placeholder.jpg';"
                              style="width: 100%; height: 250px; object-fit: cover;">
-                             <!-- Fixed image width and added proper object-fit -->
+                        <div class="category-tag" style="position: absolute; top: 10px; right: 10px; background: rgba(37, 93, 138, 0.9); color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.8rem;">
+                            <?php echo $spot_count; ?> Tourist Spots
+                        </div>
                     </div>
                     <div class="card-content">
+                        <div class="category-tag">
+                            <?php foreach ($category_tags as $tag): ?>
+                                <span style="background: rgba(37, 93, 138, 0.1); color: #255D8A; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem;">
+                                    <?php echo htmlspecialchars($tag); ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
                         <h3><?php echo $town_name; ?></h3>
+                        <?php if (!empty($description)): ?>
+                            <p style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">
+                                <?php echo substr($description, 0, 100) . (strlen($description) > 100 ? '...' : ''); ?>
+                            </p>
+                        <?php endif; ?>
                         <a href="user side/municipality.php?id=<?php echo $town_id; ?>" class="cta-button">
                             Explore <?php echo $town_name; ?>
                         </a>
@@ -903,54 +925,70 @@ if (!isLoggedIn()) {
             }
               // If no municipalities with valid images were found
             if (!$hasResults) {
-            ?>
+                // Show "no data" card with improved styling
+                ?>
                 <div class="card" data-category="municipality">
                     <div class="relative">
                         <img src="../images/placeholder.jpg" 
                              alt="Municipality placeholder"
-                             loading="lazy">
+                             loading="lazy"
+                             style="width: 100%; height: 250px; object-fit: cover; opacity: 0.7;">
+                        <div class="status-badge" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(37, 93, 138, 0.9); color: white; padding: 10px 20px; border-radius: 20px;">
+                            No Municipalities Found
+                        </div>
                     </div>
                     <div class="card-content">
-                        <h3>Loading municipality...</h3>
-                        <div class="placeholder-animation"></div>
-                        <a href="#" class="cta-button" onclick="return false;">
-                            Explore
-                        </a>
-                    </div>
-                </div>
-            <?php
-                }
-            }
-            
-            // Clean up resources
-            $result->free();
-            $stmt->close();
-            $conn->close();
-            
-        } catch (Exception $e) {
-            // Log error
-            error_log("Homepage error: " . $e->getMessage());
-            // Show placeholder cards in case of error
-            for ($i = 0; $i < 6; $i++) {
-            ?>
-                <div class="card" data-category="municipality">
-                    <div class="relative">
-                        <img src="../images/placeholder.jpg" 
-                             alt="Municipality placeholder"
-                             loading="lazy">
-                    </div>
-                    <div class="card-content">
-                        <h3>Unable to load municipality</h3>
-                        <a href="#" class="cta-button" onclick="return false;">
-                            Try Again Later
+                        <h3>No Active Municipalities</h3>
+                        <p style="color: #666; margin-bottom: 1rem;">Please check back later for updates.</p>
+                        <a href="javascript:void(0)" class="cta-button" style="background-color: #ccc;">
+                            Coming Soon
                         </a>
                     </div>
                 </div>
             <?php
             }
         }
+        
+        // Clean up resources
+        $result->free();
+        $stmt->close();
+        $conn->close();
+        
+    } catch (Exception $e) {
+        // Log error with more details
+        error_log(sprintf(
+            "Homepage error: %s in %s on line %d", 
+            $e->getMessage(), 
+            $e->getFile(), 
+            $e->getLine()
+        ));
+        
+        // Show error message card with improved styling
         ?>
+        <div class="card error-card" style="background-color: #fff3f3; border: 1px solid #ffcdd2;">
+            <div class="relative">
+                <img src="../images/placeholder.jpg" 
+                     alt="Error state"
+                     loading="lazy"
+                     style="width: 100%; height: 250px; object-fit: cover; opacity: 0.7;">
+                <div class="error-badge" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(220, 53, 69, 0.9); color: white; padding: 10px 20px; border-radius: 20px;">
+                    <i class='bx bx-error-circle'></i> Error Loading Data
+                </div>
+            </div>
+            <div class="card-content">
+                <h3 style="color: #dc3545;">Unable to Load Municipalities</h3>
+                <p style="color: #666; margin-bottom: 1rem;">
+                    We're experiencing technical difficulties. Please try again later.
+                </p>
+                <a href="homepage.php" class="cta-button" style="background-color: #dc3545;">
+                    Refresh Page
+                </a>
+            </div>
         </div>
+        <?php
+    }
+    ?>
+    </div>
 </div>
 </body>
 </html>

@@ -398,7 +398,7 @@ checkAdminSession();
                   </span>
                 </td>
                 <td class="border border-gray-300 px-4 py-3">
-                  <img src="${town.image_path ? '../../uploads/towns/' + town.image_path : '../file_images/placeholder.jpg'}" 
+                  <img src="${town.image_path ? '../../uploads/' + town.image_path : '../file_images/placeholder.jpg'}" 
                        alt="${town.name}" 
                        class="h-16 w-24 object-cover rounded"
                        onerror="this.src='../file_images/placeholder.jpg'">
@@ -517,16 +517,14 @@ checkAdminSession();
       form.reset();
       imagePreview.innerHTML = '';
       imagePreview.classList.add('hidden');
-      uploadText.classList.remove('hidden');
-
-      if (municipalityData) {
+      uploadText.classList.remove('hidden');      if (municipalityData) {
         // Editing existing municipality
         console.log('Editing municipality:', municipalityData);
         modalTitle.textContent = 'Edit Municipality';
         document.getElementById('townId').value = municipalityData.town_id;
         form.name.value = municipalityData.name || '';
         if (municipalityData.image_path) {
-          showImagePreview('../../uploads/towns/' + municipalityData.image_path);
+          showImagePreview('../../uploads/' + municipalityData.image_path);
         }
       } else {
         // Adding new municipality
@@ -576,10 +574,7 @@ checkAdminSession();
       } catch (error) {
         console.error('Error setting up edit form:', error);
         showNotification('Error loading municipality data', 'error');
-      }
-    }
-
-    function showImagePreview(url) {
+      }    }    function showImagePreview(url) {
       const preview = document.getElementById('imagePreview');
       const uploadText = document.getElementById('uploadText');
       
@@ -587,14 +582,9 @@ checkAdminSession();
         <div class="relative">
           <img src="${url}" 
                alt="Preview" 
-               class="max-h-48 rounded-lg mx-auto shadow-sm cursor-pointer hover:shadow transition-shadow"
+               class="max-h-48 w-auto mx-auto rounded-lg shadow-sm cursor-pointer transition-all duration-300 hover:shadow-md"
                onclick="triggerFileInput(event)"
                onerror="handleImageError(this)">
-          <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-            <span class="text-white px-4 py-2 rounded cursor-pointer">
-              <i class="fas fa-camera mr-2"></i>Change image
-            </span>
-          </div>
         </div>
       `;
       
@@ -603,25 +593,58 @@ checkAdminSession();
     }
 
     function handleImageError(img) {
-      img.parentElement.innerHTML = `
-        <div class="text-center p-4 bg-red-50 rounded-lg">
-          <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
-          <p class="mt-2 text-red-600">Error loading image</p>
-          <button onclick="triggerFileInput(event)" 
-                  class="mt-2 text-blue-600 hover:text-blue-800 text-sm">
+      const container = img.parentElement;
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-6 bg-red-50 rounded-lg">
+          <i class="fas fa-exclamation-circle text-red-500 text-2xl mb-2"></i>
+          <p class="text-red-600 text-sm mb-3">Failed to load image</p>
+          <button type="button"
+                  onclick="triggerFileInput(event)"
+                  class="text-white px-4 py-2 rounded-lg bg-[#255D8A] hover:bg-[#1e4d70] transition-colors">
             Upload new image
           </button>
         </div>
       `;
-    }
+    }    function handleImageSelect(event) {
+      event.preventDefault();
+      event.stopPropagation();
 
-    function triggerFileInput(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        showNotification('Please select a valid image file (JPEG, PNG, or GIF)', 'error');
+        event.target.value = '';
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        showNotification('Image size should be less than 5MB', 'error');
+        event.target.value = '';
+        return;
+      }
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        if (e.target && e.target.result) {
+          showImagePreview(e.target.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }    function triggerFileInput(event) {
       if (event) {
         event.preventDefault();
         event.stopPropagation();
       }
+      
       const fileInput = document.getElementById('imageInput');
-      fileInput?.click();
+      if (fileInput) {
+        fileInput.click();
+      }
     }
     
     function showNotification(message, type = 'success') {
@@ -654,9 +677,7 @@ checkAdminSession();
         notification.style.opacity = '0';
         setTimeout(() => notification.remove(), 300);
       }, 3000);
-    }
-
-    // Handle form submission
+    }    // Handle form submission
     async function handleSubmit(event) {
       event.preventDefault();
       const form = document.getElementById('municipalityForm');
@@ -676,6 +697,7 @@ checkAdminSession();
         }
 
         const isEditing = townId && townId.trim() !== '';
+        formData.append('town_id', townId); // Ensure town_id is included for updates
         const url = `../../tripko-backend/api/towns/${isEditing ? 'update' : 'create'}.php`;
 
         // Validate image if one is selected
@@ -688,19 +710,25 @@ checkAdminSession();
           if (imageFile.size > 5 * 1024 * 1024) {
             throw new Error('Image size should be less than 5MB');
           }
-        }
-
-        // Send request
+        }        // Send request
         const response = await fetch(url, {
           method: 'POST',
           body: formData
         });
 
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.status}`);
+        let data;
+        const responseText = await response.text();
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Server response:', responseText);
+          throw new Error('Invalid server response');
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || `Server error: ${response.status}`);
+        }
+
         if (data.success) {
           closeModal();
           await loadTableView();

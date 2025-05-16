@@ -30,9 +30,8 @@ try {
     }
 
     // Handle image upload
-    $image_path = null;
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = dirname(dirname(dirname(dirname(__FILE__)))) . '/uploads/towns/';
+    $image_path = null;    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = dirname(dirname(dirname(dirname(__FILE__)))) . '/uploads/';
         logError("Upload directory path: " . $uploadDir);
         
         // Ensure directory exists with correct permissions
