@@ -1,43 +1,72 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+// Prevent any output before headers
+ob_start();
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-require_once(__DIR__ . '/../../config/db.php');
+session_start();
+require_once(__DIR__ . '/../../config/check_session.php');
+
+if (!isset($_SESSION['user_id'])) {
+    header('HTTP/1.1 401 Unauthorized');
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
+include_once '../../config/Database.php';
+include_once '../../models/Itinerary.php';
+
+$database = new Database();
+$db = $database->getConnection();
+$itinerary = new Itinerary($db);
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        http_response_code(405);
+        header('HTTP/1.1 405 Method Not Allowed');
         echo json_encode(['success' => false, 'message' => 'Method not allowed']);
         exit;
     }
 
-    $sql = "
-        SELECT
-            i.itinerary_id,
-            i.name,
-            i.description,
-            i.destination_id,
-            i.environmental_fee,
-            i.image_path,
-            t.town_name AS destination_name
-        FROM itineraries AS i
-        LEFT JOIN towns AS t ON i.destination_id = t.town_id
-        ORDER BY i.itinerary_id DESC
-    ";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $result = $itinerary->read();
+    
+    if($result && $result->num_rows > 0) {
+        $itineraries_arr = array();
+        $itineraries_arr['records'] = array();
 
-    $records = [];
-    while ($row = $result->fetch_assoc()) {
-        $records[] = $row;
+        while($row = $result->fetch_assoc()) {
+            $itinerary_item = array(
+                'id' => $row['itinerary_id'],
+                'name' => $row['name'],
+                'description' => $row['description'],
+                'destination' => $row['town_name'],
+                'destination_id' => $row['town_id'],
+                'environmental_fee' => $row['environmental_fee'],
+                'image_path' => $row['image_path'],
+                'status' => $row['status'],
+                'duration' => $row['duration'],
+                'tourist_spots' => $row['tourist_spots'],
+                'budget' => $row['budget']
+            );
+            array_push($itineraries_arr['records'], $itinerary_item);
+        }
+
+        header('HTTP/1.1 200 OK');
+        ob_end_clean();
+        echo json_encode($itineraries_arr);
+    } else {
+        header('HTTP/1.1 404 Not Found');
+        ob_end_clean();
+        echo json_encode(['message' => 'No itineraries found']);
     }
-
-    echo json_encode(['records' => $records]);
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+} catch(Exception $e) {
+    error_log("Error in read.php: " . $e->getMessage());
+    header('HTTP/1.1 500 Internal Server Error');
+    ob_end_clean();
+    echo json_encode([
+        'message' => 'Unable to fetch itineraries',
+        'error' => $e->getMessage()
+    ]);
 }

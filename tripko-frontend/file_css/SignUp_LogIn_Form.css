@@ -99,7 +99,7 @@ form{ width: 100%; }
 .btn{
     width: 100%;
     height: 48px;
-    background: #7494ec;
+    background: rgba(37, 93, 138, 0.95);
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, .1);
     border: none;
@@ -136,7 +136,7 @@ form{ width: 100%; }
         left: -250%;
         width: 300%;
         height: 100%;
-        background: #7494ec;
+        background:rgba(37, 93, 138, 0.95);
         /* border: 2px solid red; */
         border-radius: 150px;
         z-index: 2;
@@ -246,4 +246,29 @@ form{ width: 100%; }
     margin: 10px 0;
     font-size: 14px;
     text-align: center;
+}
+
+.password-wrapper input {
+    padding-left: 20px; /* Removed space for the lock icon */
+}
+
+.lock-icon {
+    display: none; /* Hide the lock icon */
+}
+
+/* Ensure the eye icon is clickable and properly styled */
+.eye-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    user-select: none;
+    font-size: 20px;
+    color: #888;
+    z-index: 10; /* Ensure it is above other elements */
+}
+
+.eye-icon:hover {
+    color: #333;
 }

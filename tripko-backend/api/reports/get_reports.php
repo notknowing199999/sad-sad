@@ -1,184 +1,164 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-session_start();
-
-header("Access-Control-Allow-Origin: http://localhost");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Access-Control-Allow-Credentials: true");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
+if (!function_exists('http_response_code')) {
+    function http_response_code($code = NULL) {
+        if ($code !== NULL) {
+            switch ($code) {
+                case 100: $text = 'Continue'; break;
+                case 101: $text = 'Switching Protocols'; break;
+                case 200: $text = 'OK'; break;
+                case 201: $text = 'Created'; break;
+                case 202: $text = 'Accepted'; break;
+                case 203: $text = 'Non-Authoritative Information'; break;
+                case 204: $text = 'No Content'; break;
+                case 205: $text = 'Reset Content'; break;
+                case 206: $text = 'Partial Content'; break;
+                case 300: $text = 'Multiple Choices'; break;
+                case 301: $text = 'Moved Permanently'; break;
+                case 302: $text = 'Moved Temporarily'; break;
+                case 303: $text = 'See Other'; break;
+                case 304: $text = 'Not Modified'; break;
+                case 305: $text = 'Use Proxy'; break;
+                case 400: $text = 'Bad Request'; break;
+                case 401: $text = 'Unauthorized'; break;
+                case 402: $text = 'Payment Required'; break;
+                case 403: $text = 'Forbidden'; break;
+                case 404: $text = 'Not Found'; break;
+                case 405: $text = 'Method Not Allowed'; break;
+                case 406: $text = 'Not Acceptable'; break;
+                case 407: $text = 'Proxy Authentication Required'; break;
+                case 408: $text = 'Request Time-out'; break;
+                case 409: $text = 'Conflict'; break;
+                case 410: $text = 'Gone'; break;
+                case 411: $text = 'Length Required'; break;
+                case 412: $text = 'Precondition Failed'; break;
+                case 413: $text = 'Request Entity Too Large'; break;
+                case 414: $text = 'Request-URI Too Large'; break;
+                case 415: $text = 'Unsupported Media Type'; break;
+                case 500: $text = 'Internal Server Error'; break;
+                case 501: $text = 'Not Implemented'; break;
+                case 502: $text = 'Bad Gateway'; break;
+                case 503: $text = 'Service Unavailable'; break;
+                case 504: $text = 'Gateway Time-out'; break;
+                case 505: $text = 'HTTP Version not supported'; break;
+                default:  exit('Unknown http status code "' . htmlentities($code) . '"'); break;
+            }
+            $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0');
+            header($protocol . ' ' . $code . ' ' . $text);
+            $GLOBALS['http_response_code'] = $code;
+        } else {
+            $code = (isset($GLOBALS['http_response_code']) ? $GLOBALS['http_response_code'] : 200);
+        }
+        return $code;
+    }
 }
-
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: GET");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-require_once(__DIR__ . '/../../config/db.php');
+require_once '../../config/Database.php';
 
 try {
-    if (!isset($_SESSION['user_id'])) {
-        throw new Exception('Not authenticated');
-    }
+    $database = new Database();
+    $conn = $database->getConnection();
 
-    if ($conn->connect_error) {
-        throw new Exception("Database connection failed: " . $conn->connect_error);
-    }
+    $period = isset($_GET['period']) ? (int)$_GET['period'] : 30;
+    $response = ['success' => true];
 
-    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        throw new Exception('Method not allowed');
-    }
+    // Tourism data query 
+    $tourismQuery = "SELECT 
+        DATE_FORMAT(ts.created_at, '%Y-%m') as month,
+        COUNT(*) as count 
+        FROM tourist_spots ts 
+        WHERE ts.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        GROUP BY DATE_FORMAT(ts.created_at, '%Y-%m')
+        ORDER BY month";
 
-    $period = isset($_GET['period']) ? intval($_GET['period']) : 30;
-    $date = date('Y-m-d', strtotime("-$period days"));
+    $stmt = $conn->prepare($tourismQuery);
+    $stmt->bind_param("i", $period);
+    $stmt->execute();
+    $tourismResult = $stmt->get_result();
     
-    error_log("Reports API called - Period: $period, Date range: $date to " . date('Y-m-d'));
-
-    // Tourism Statistics 
-    $tourismSql = "
-        SELECT 
-            ts.name AS spot_name,
-            t.town_name,
-            COALESCE(SUM(vt.visitor_count), 0) AS visit_count
-        FROM tourist_spots ts
-        LEFT JOIN towns t ON ts.town_id = t.town_id
-        LEFT JOIN visitors_tracking vt ON ts.spot_id = vt.spot_id 
-            AND vt.visit_date >= ?
-        GROUP BY ts.spot_id, ts.name, t.town_name
-        ORDER BY visit_count DESC
-        LIMIT 1";
-    
-    $stmt = $conn->prepare($tourismSql);
-    if (!$stmt) {
-        throw new Exception("Tourism query preparation failed: " . $conn->error);
+    $monthlyData = [];
+    while ($row = $tourismResult->fetch_assoc()) {
+        $monthlyData[] = $row;
     }
-    $stmt->bind_param("s", $date);
-    $stmt->execute();
-    $tourismResult = $stmt->get_result()->fetch_assoc();
-    error_log("Tourism result: " . json_encode($tourismResult));
 
-    // Total visitors with trend
-    $totalVisitorsSql = "
-        SELECT 
-            COALESCE(SUM(CASE WHEN visit_date >= ? THEN visitor_count ELSE 0 END), 0) as total,
-            COALESCE(SUM(CASE WHEN visit_date >= DATE_SUB(?, INTERVAL $period DAY) 
-                              AND visit_date < ? THEN visitor_count ELSE 0 END), 0) as previous_total
-        FROM visitors_tracking";
-    $stmt = $conn->prepare($totalVisitorsSql);
-    $stmt->bind_param("sss", $date, $date, $date);
-    $stmt->execute();
-    $visitorResult = $stmt->get_result()->fetch_assoc();
-    error_log("Visitor counts: " . json_encode($visitorResult));
+    // Popular spot query
+    $spotQuery = "SELECT ts.name, t.name as town_name, 
+                  COALESCE(COUNT(*), 0) as visit_count 
+                  FROM tourist_spots ts
+                  LEFT JOIN towns t ON ts.town_id = t.town_id
+                  GROUP BY ts.spot_id 
+                  ORDER BY visit_count DESC 
+                  LIMIT 1";
+                 
+    $spotResult = $conn->query($spotQuery);
+    $popularSpot = $spotResult->fetch_assoc();
 
-    // Monthly visitor data using a stable approach for all MySQL versions
-    $monthlyVisitorsSql = "
-        SELECT 
-            DATE_FORMAT(visit_date, '%Y-%m') as month,
-            COALESCE(SUM(visitor_count), 0) as count
-        FROM visitors_tracking
-        WHERE visit_date >= DATE_SUB(CURRENT_DATE, INTERVAL 12 MONTH)
-        GROUP BY month 
-        ORDER BY month ASC";
-    $stmt = $conn->prepare($monthlyVisitorsSql);
-    $stmt->execute();
-    $monthlyVisitors = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    error_log("Monthly visitor data count: " . count($monthlyVisitors));
-
-    // Transportation Analytics
-    $routeSql = "
-        SELECT 
-            CONCAT(rt1.name, ' → ', rt2.name) as route_name,
-            rt1.town as from_town,
-            rt2.town as to_town,
-            COUNT(DISTINCT tr.route_id) as route_count
-        FROM transport_route tr
-        JOIN route_terminals rt1 ON tr.origin_terminal_id = rt1.terminal_id
-        JOIN route_terminals rt2 ON tr.destination_terminal_id = rt2.terminal_id
-        GROUP BY route_name, from_town, to_town
-        ORDER BY route_count DESC
-        LIMIT 1";
-    $stmt = $conn->prepare($routeSql);
-    $stmt->execute();
-    $routeResult = $stmt->get_result()->fetch_assoc();
-    error_log("Route result: " . json_encode($routeResult));
-
-    // Transport types distribution
-    $transportTypesSql = "
-        SELECT 
-            tt.type,
-            COALESCE(COUNT(DISTINCT rtt.route_id), 0) as count
+    // Transport distribution - using correct table name
+    $transportQuery = "SELECT 
+        tt.type as name,
+        COALESCE(COUNT(DISTINCT rt.route_id), 0) as count
         FROM transportation_type tt
         LEFT JOIN route_transport_types rtt ON tt.transport_type_id = rtt.transport_type_id
-        GROUP BY tt.transport_type_id, tt.type
-        ORDER BY count DESC, type ASC";
-    
-    error_log("Running transport types query: " . $transportTypesSql);
-    $stmt = $conn->prepare($transportTypesSql);
-    $stmt->execute();
-    $transportTypes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    error_log("Transport types result: " . json_encode($transportTypes));
+        LEFT JOIN transport_route rt ON rtt.route_id = rt.route_id
+        GROUP BY tt.transport_type_id";
 
-    // Fill in missing months in visitor data
-    $allMonths = [];
-    $startDate = new DateTime(date('Y-m-01', strtotime('-11 months')));
-    $endDate = new DateTime(date('Y-m-01'));
-    
-    while ($startDate <= $endDate) {
-        $month = $startDate->format('Y-m');
-        $allMonths[$month] = 0;
-        $startDate->modify('+1 month');
+    $transportResult = $conn->query($transportQuery);
+    $typeDistribution = [];
+    while ($row = $transportResult->fetch_assoc()) {
+        $typeDistribution[] = $row;
     }
 
-    foreach ($monthlyVisitors as $record) {
-        $allMonths[$record['month']] = (int)$record['count'];
-    }
+    // Popular route query
+    $routeQuery = "SELECT 
+        tr.route_id,
+        t1.name as from_town,
+        t2.name as to_town,
+        COUNT(*) as usage_count
+        FROM transport_route tr
+        LEFT JOIN route_terminals term1 ON tr.origin_terminal_id = term1.terminal_id
+        LEFT JOIN route_terminals term2 ON tr.destination_terminal_id = term2.terminal_id
+        LEFT JOIN towns t1 ON term1.town = t1.name
+        LEFT JOIN towns t2 ON term2.town = t2.name
+        GROUP BY tr.route_id
+        ORDER BY usage_count DESC
+        LIMIT 1";
 
-    $monthlyData = [];
-    foreach ($allMonths as $month => $count) {
-        $monthlyData[] = ['month' => $month, 'count' => $count];
-    }
+    $routeResult = $conn->query($routeQuery);
+    $popularRoute = $routeResult->fetch_assoc();
 
-    // Calculate trend percentages
-    $visitorTrend = $visitorResult['previous_total'] > 0 
-        ? (($visitorResult['total'] - $visitorResult['previous_total']) / $visitorResult['previous_total'] * 100)
-        : 0;
+    $response['tourism'] = [
+        'monthlyData' => $monthlyData,
+        'totalVisitors' => array_sum(array_column($monthlyData, 'count')),
+        'visitorTrend' => 0,
+        'popularSpot' => $popularSpot['name'] ?? 'No data',
+        'popularSpotLocation' => $popularSpot['town_name'] ?? null
+    ];
 
-    // Ensure we always have a success response even with no data
-    $response = [
-        'success' => true,
-        'tourism' => [
-            'popularSpot' => $tourismResult['spot_name'] ?? 'No data available',
-            'popularSpotLocation' => $tourismResult['town_name'] ?? '',
-            'totalVisitors' => (int)($visitorResult['total'] ?? 0),
-            'visitorTrend' => round($visitorTrend, 1),
-            'monthlyData' => $monthlyData
-        ],
-        'transport' => [
-            'popularRoute' => [
-                'name' => $routeResult['route_name'] ?? 'No routes available',
-                'fromTown' => $routeResult['from_town'] ?? '',
-                'toTown' => $routeResult['to_town'] ?? ''
-            ],
-            'typeDistribution' => array_map(function($type) {
-                return [
-                    'type' => $type['type'],
-                    'count' => (int)$type['count']
-                ];
-            }, $transportTypes)
+    $response['transport'] = [
+        'typeDistribution' => $typeDistribution,
+        'popularRoute' => [
+            'name' => ($popularRoute ? "{$popularRoute['from_town']} to {$popularRoute['to_town']}" : 'No data'),
+            'fromTown' => $popularRoute['from_town'] ?? null,
+            'toTown' => $popularRoute['to_town'] ?? null
         ]
     ];
 
-    error_log("Final response: " . json_encode($response));
     echo json_encode($response);
 
-} catch (Exception $e) {
-    error_log("Reports API Error: " . $e->getMessage());
+} catch(Exception $e) {
+    error_log("Dashboard error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Error generating reports: ' . $e->getMessage()
+        'message' => $e->getMessage()
     ]);
+}
+
+// Close the database connection
+if (isset($conn)) {
+    $conn->close();
 }
 ?>

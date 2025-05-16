@@ -9,7 +9,7 @@ require_once(__DIR__ . '/../../config/db.php');
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
+        header('HTTP/1.1 405 Method Not Allowed');
         echo json_encode(['success' => false, 'message' => 'Method not allowed']);
         exit;
     }
@@ -46,6 +46,6 @@ try {
     $stmt->close();
     $conn->close();
 } catch (Exception $e) {
-    http_response_code(500);
+    header('HTTP/1.1 500 Internal Server Error');
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

@@ -4,19 +4,21 @@ error_reporting(E_ALL);
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Credentials: true"); 
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 require_once(__DIR__ . '/../../config/db.php');
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
+        header('HTTP/1.1 404 Not Found');
         echo json_encode(['success' => false, 'message' => 'Method not allowed']);
         exit;
     }
 
     $name = $_POST['name'] ?? '';
     $description = $_POST['description'] ?? '';
-    $town_id = $_POST['town_id'] ?? '';
     $category = $_POST['category'] ?? '';
     $contact_info = $_POST['contact_info'] ?? '';
 
@@ -34,8 +36,9 @@ try {
         }
     }
 
-    $stmt = $conn->prepare("INSERT INTO tourist_spots (name, description, town_id, category, contact_info, image_path) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssisss", $name, $description, $town_id, $category, $contact_info, $image_path);
+    // Remove town_id from the INSERT query
+    $stmt = $conn->prepare("INSERT INTO tourist_spots (name, description, category, contact_info, image_path) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssss", $name, $description, $category, $contact_info, $image_path);
     $stmt->execute();
 
     if ($stmt->affected_rows > 0) {
@@ -47,6 +50,6 @@ try {
     $stmt->close();
     $conn->close();
 } catch (Exception $e) {
-    http_response_code(500);
+        header('HTTP/1.1 500 Internal Server Error');
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

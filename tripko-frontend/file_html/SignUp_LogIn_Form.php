@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login/Signup Form</title>
-    <link rel="stylesheet" href="../file_css/SignUp_LogIn_Form.css">
+    <title>Login/Signup Form - TripKo</title>
+    <link rel="stylesheet" href="/tripko-system/tripko-frontend/file_css/SignUp_LogIn_Form.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 <body>
-    <div class="container">
+<div class="container">
         <div class="form-box login">
             <?php if (isset($_GET['error'])): ?>
                 <div class="error-message">
@@ -23,19 +23,41 @@
                         case 'system':
                             echo 'System error, please try again';
                             break;
+                        case 'empty':
+                            echo 'Please fill in all fields';
+                            break;
+                        case 'session':
+                            echo 'Your session has expired. Please log in again';
+                            break;
+                        case 'timeout':
+                            echo 'Session timed out for security. Please log in again';
+                            break;
+                        case 'inactive':
+                            echo 'Account is inactive. Please contact support';
+                            break;
+                        case 'exists':
+                            echo 'Username already exists. Please choose another';
+                            break;
+                        default:
+                            echo 'An error occurred. Please try again';
                     }
                     ?>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($_GET['success'])): ?>
+                <div class="success-message">
+                    Registration successful! Please log in.
                 </div>
             <?php endif; ?>
             <form action="../../tripko-backend/login.php" method="POST">
                 <h1>Login</h1>
                 <div class="input-box">
-                    <input type="text" name="username" placeholder="Username" required>
+                    <input type="text" name="username" placeholder="Username" required minlength="3" maxlength="50">
                     <i class='bx bxs-user'></i>
                 </div>
-                <div class="input-box">
-                    <input type="password" name="password" placeholder="Password" required>
-                    <i class='bx bxs-lock-alt'></i>
+                <div class="input-box password-wrapper">
+                    <input type="password" class="inputtext _55r1 _6luy _9npi" name="password" id="password" placeholder="Password" aria-label="Password" required minlength="6">
+                    <i id="togglePassword" class='bx bxs-hide eye-icon' aria-hidden="true"></i>
                 </div>
                 <div class="forgot-link">
                     <a href="#">Forgot Password?</a>
@@ -45,13 +67,22 @@
         </div>
 
         <div class="form-box register">
-            <form action="../../tripko-backend/register.php" method="POST">
+            <form action="../../tripko-backend/register.php" method="POST" id="registerForm">
                 <h1>Sign Up</h1>
                 <div class="input-box">
-                    <input type="text" name="username" placeholder="Username" required>
+                    <input type="text" name="username" placeholder="Username" required minlength="3" maxlength="50"
+                           pattern="[a-zA-Z0-9_]+" title="Username can only contain letters, numbers, and underscore">
+                    <i class='bx bxs-user'></i>
                 </div>
-                <div class="input-box">
-                    <input type="password" name="password" placeholder="Password" required>
+                <div class="input-box password-wrapper">
+                    <input type="password" class="inputtext _55r1 _6luy _9npi" name="password" id="register_password" placeholder="Password" aria-label="Password" required minlength="6"
+                           pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}"
+                           title="Must contain at least one number, one uppercase and lowercase letter, and at least 6 characters">
+                    <i id="toggleRegisterPassword" class='bx bxs-hide eye-icon' aria-hidden="true"></i>
+                </div>
+                <div class="input-box password-wrapper">
+                    <input type="password" class="inputtext _55r1 _6luy _9npi" name="confirm_password" id="confirm_password" placeholder="Confirm Password" aria-label="Confirm Password" required minlength="6">
+                    <i id="toggleConfirmPassword" class='bx bxs-hide eye-icon' aria-hidden="true"></i>
                 </div>
                 <button type="submit" class="btn">Sign Up</button>
             </form>
@@ -72,6 +103,17 @@
         </div>
     </div>
     
+    <script>
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        var password = document.getElementById('register_password');
+        var confirm = document.getElementById('confirm_password');
+        
+        if (password.value !== confirm.value) {
+            e.preventDefault();
+            alert('Passwords do not match!');
+        }
+    });
+    </script>
     <script src="../file_js/SignUp_LogIn_Form.js"></script>
 </body>
 </html>

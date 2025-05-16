@@ -4,6 +4,7 @@ header("Content-Type: application/json; charset=UTF-8");
 
 $sql = "SELECT 
     r.route_id,
+    r.status,
     t1.name AS from_terminal,
     t1.town AS from_town,
     t2.name AS to_terminal,

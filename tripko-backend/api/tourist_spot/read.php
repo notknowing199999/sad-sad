@@ -4,41 +4,63 @@ error_reporting(E_ALL);
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: GET");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-require_once(__DIR__ . '/../../config/db.php');
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+include_once '../../config/Database.php';
+include_once '../../models/TouristSpot.php';
+
+// Initialize database connection
+$database = new Database();
+$db = $database->getConnection();
+
+// Initialize TouristSpot object
+$tourist_spot = new TouristSpot($db);
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        http_response_code(405);
+        header('HTTP/1.1 405 Method Not Allowed');
         echo json_encode(['success' => false, 'message' => 'Method not allowed']);
         exit;
+    }    
+    // Get tourist spots
+    $result = $tourist_spot->read();
+    
+    if($result && $result->num_rows > 0) {
+        $spots_arr = array();
+        $spots_arr['records'] = array();
+
+        while($row = $result->fetch_assoc()) {
+            $spot_item = array(
+                'spot_id' => $row['spot_id'],
+                'name' => $row['name'],
+                'description' => $row['description'],
+                'town_id' => $row['town_id'],
+                'town_name' => $row['town_name'] ?? '',
+                'status' => $row['status'],
+                'image_path' => $row['image_path'],
+                'category' => $row['category'],
+                'contact_info' => $row['contact_info']
+            );
+
+            array_push($spots_arr['records'], $spot_item);
+        }
+
+        header('HTTP/1.1 200 OK');
+        echo json_encode($spots_arr);
+    } else {
+        header('HTTP/1.1 404 Not Found');
+        echo json_encode(array('message' => 'No tourist spots found'));
     }
-
-    $sql = "
-        SELECT
-            s.spot_id,
-            s.name,
-            s.description,
-            s.town_id,
-            s.category,
-            s.contact_info,
-            s.image_path,
-            t.town_name
-        FROM tourist_spots AS s
-        LEFT JOIN towns AS t ON s.town_id = t.town_id
-        ORDER BY s.spot_id DESC
-    ";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $records = [];
-    while ($row = $result->fetch_assoc()) {
-        $records[] = $row;
-    }
-
-    echo json_encode(['records' => $records]);
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+} catch(Exception $e) {
+    header('HTTP/1.1 500 Internal Server Error');
+    echo json_encode(array(
+        'message' => 'Unable to fetch tourist spots',
+        'error' => $e->getMessage()
+     ));
 }

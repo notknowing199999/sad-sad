@@ -10,11 +10,11 @@ $sql = "SELECT
     rt1.town AS from_town,
     f.to_terminal_id,
     rt2.name AS to_terminal_name,
-    rt2.town AS to_town,
-    f.transport_type_id,
+    rt2.town AS to_town,    f.transport_type_id,
     tt.type AS transport_type_name,
     f.category,
-    f.amount
+    f.amount,
+    f.status
 FROM fares f
 LEFT JOIN route_terminals rt1 ON f.from_terminal_id = rt1.terminal_id
 LEFT JOIN route_terminals rt2 ON f.to_terminal_id = rt2.terminal_id

@@ -3,104 +3,252 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TripKo Pangasinan - Transportation Routes</title>
+  <title>TripKo Pangasinan - Terminal Routes</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Merriweather&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Kameron:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../file_css/dashboard.css" />
+  <style>
+     body {
+      font-family: 'kameron';
+      font-size: 17px;
+    }
+
+    .nav-links a,
+    .font-medium,
+    button,
+    select,
+    input,
+    p,
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Kameron';
+    }
+
+    canvas#transportChart {
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute !important;
+      top: 0;
+      left: 0;
+    }
+  </style>
+  <script>
+    let currentRouteId = null;
+
+    function openStatusModal(routeId, currentStatus) {
+      currentRouteId = routeId;
+      const statusText = document.getElementById('currentStatusText');
+      statusText.textContent = currentStatus || 'active';
+      statusText.className = 'font-semibold ' + 
+        (currentStatus === 'inactive' ? 'text-red-600' : 'text-green-600');
+      document.getElementById('statusModal').classList.remove('hidden');
+    }
+
+    function closeStatusModal() {
+      document.getElementById('statusModal').classList.add('hidden');
+      currentRouteId = null;
+    }
+
+    async function updateRouteStatus(newStatus) {
+      if (!currentRouteId) return;
+
+      try {
+        const response = await fetch('../../tripko-backend/api/terminal_routes/update_status.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            route_id: currentRouteId,
+            status: newStatus
+          })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          alert(`Route status updated to ${newStatus}`);
+          closeStatusModal();
+          loadRoutes();
+        } else {
+          throw new Error(data.message || 'Failed to update status');
+        }
+      } catch (error) {
+        console.error('Error updating status:', error);
+        alert('Failed to update route status: ' + error.message);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Transport dropdown
+        const transportDropdown = document.getElementById('transportDropdown');
+        const transportDropdownIcon = document.getElementById('transportDropdownIcon');
+
+        // Close dropdown
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#transportDropdown') && !e.target.closest('[onclick*="toggleTransportDropdown"]')) {
+                transportDropdown?.classList.add('hidden');
+                if (transportDropdownIcon) {
+                    transportDropdownIcon.style.transform = 'rotate(0deg)';
+                }
+            }
+        });
+    });
+  </script>
 </head>
 <body class="bg-white text-gray-900">
   <div class="flex min-h-screen">
     <!-- Sidebar -->
-    <aside class="flex flex-col justify-between bg-[#255D8A] w-64 p-6 text-white">
-      <div>
-        <div class="flex items-center gap-3 mb-10">
-          <div class="rounded-full border border-white p-2">
-            <i class="fas fa-user-circle text-3xl"></i>
+    <aside class="flex flex-col w-72 bg-[#255d8a] text-white">
+      <!-- Logo and Brand -->
+      <div class="p-6 border-b border-blue-700">
+        <div class="flex items-center space-x-4">
+          <div class="p-2 bg-white bg-opacity-10 rounded-lg">
+            <i class="fas fa-compass text-3xl"></i>
           </div>
-          <div class="font-semibold text-lg leading-tight">
-            TripKo<br />Pangasinan
+          <div>
+            <h1 class="text-2xl font-medium">TripKo</h1>
+            <p class="text-sm text-blue-200">Pangasinan Tourism</p>
           </div>
         </div>
-        <nav class="flex flex-col space-y-5 text-sm font-semibold">
-          <a href="../file_html/dashboard.php" class="nav-link">
-            <i class="fas fa-home text-white text-lg"></i> Dashboard
-          </a>
-          <a href="../file_html/tourist_spot.php" class="nav-link">
-            <i class="fas fa-umbrella-beach text-white text-lg"></i> Tourist Spots
-          </a>
-          <a href="../file_html/itineraries.html" class="nav-link">
-            <i class="fas fa-map-marker-alt text-white text-lg"></i> Itineraries
-          </a>
-          <a href="../file_html/festival.html" class="nav-link">
-            <i class="fas fa-carrot text-white text-lg"></i> Festivals
-          </a>
-          <a href="#" class="nav-link active" onclick="toggleTransportDropdown(event)">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <i class="fas fa-bus text-white text-lg"></i>
-                <span class="ml-2">Transportation</span>
-              </div>
-              <i class="fas fa-chevron-down text-sm transition-transform" id="transportDropdownIcon"></i>
-            </div>
-          </a>
-          <div id="transportDropdown" class="hidden pl-8 mt-2 space-y-2">
-            <a href="terminal-locations.html" class="nav-link">
-              <i class="fas fa-map-marker-alt text-white text-lg"></i>
-              <span class="ml-2">Terminals</span>
-            </a>
-            <a href="terminal-routes.html" class="nav-link">
-              <i class="fas fa-route text-white text-lg"></i>  
-              <span class="ml-2">Routes & Types</span>
-            </a>
-          </div>
-          <a href="../file_html/fare.html" class="nav-link">
-            <i class="fas fa-money-bill-wave text-white text-lg"></i> Fare
-          </a>
-          <a href="#" class="nav-link">
-            <i class="fas fa-user-friends text-white text-lg"></i> Users
-          </a>
-          <a href="../file_html/reports.php" class="nav-link">
-            <i class="fas fa-chart-bar text-white text-lg"></i> Reports
-          </a>
-          <a href="../../tripko-backend/config/confirm_logout.php" class="nav-link">
-            <i class="fas fa-sign-out-alt text-white text-lg"></i> Sign Out
-          </a>
-        </nav>
       </div>
-      <div class="flex items-center gap-3 font-semibold">
-        <div class="rounded-full border border-white p-2">
-          <i class="fas fa-user-circle text-3xl"></i>
+
+      <!-- Navigation Menu -->
+      <nav class="flex-1 p-6 space-y-2 overflow-y-auto">
+        <!-- Dashboard -->
+        <a href="dashboard.php" class="flex items-center px-4 py-3 text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+          <i class="fas fa-home w-6"></i>
+          <span class="ml-3">Dashboard</span>
+        </a>
+
+        <!-- Tourism Section -->
+        <div class="mt-6">
+          <p class="px-4 text-xs font-semibold text-blue-300 uppercase">Tourism</p>
+          <div class="mt-3 space-y-2">
+           <a href="tourist_spot.php" class="flex items-center px-4 py-3 text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+              <i class="fas fa-umbrella-beach w-6"></i>
+              <span class="ml-3">Tourist Spots</span>
+            </a>
+            <a href="itineraries.php" class="flex items-center px-4 py-3 text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+              <i class="fas fa-map-marked-alt w-6"></i>
+              <span class="ml-3">Itineraries</span>
+            </a>
+            <a href="festival.php" class="flex items-center px-4 py-3 text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+              <i class="fas fa-calendar-alt w-6"></i>
+              <span class="ml-3">Festivals</span>
+            </a>
+          </div>
         </div>
-        <div>
-          Administrator<br />
-          <span class="text-sm">Administrator</span>
+
+        <!-- Location Management Section -->
+        <div class="mt-6">
+          <p class="px-4 text-xs font-semibold text-blue-300 uppercase">Locations</p>
+          <div class="mt-3 space-y-2">
+            <a href="towns.html" class="flex items-center px-4 py-3 text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+              <i class="fas fa-city w-6"></i>
+              <span class="ml-3">Towns</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Transportation Section -->
+        <div class="mt-6">
+          <p class="px-4 text-xs font-semibold text-blue-300 uppercase">Transportation</p>
+          <div class="mt-3 space-y-2">
+            <button onclick="toggleTransportDropdown(event)" class="w-full flex items-center justify-between px-4 py-3 text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+                <div class="flex items-center">
+                    <i class="fas fa-bus w-6"></i>
+                    <span class="ml-3">Transport Info</span>
+                </div>
+                <i class="fas fa-chevron-down text-sm transition-transform duration-200 rotate-180" id="transportDropdownIcon"></i>
+            </button>
+            <div id="transportDropdown" class="pl-4 space-y-2">
+              <a href="terminal-locations.html" class="flex items-center px-4 py-2 text-blue-200 hover:text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+                <i class="fas fa-map-marker-alt w-6"></i>
+                <span class="ml-3">Terminals</span>
+              </a>
+              <a href="terminal-routes.html" class="flex items-center px-4 py-2 text-blue-200 hover:text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+                <i class="fas fa-route w-6"></i>
+                <span class="ml-3">Routes & Types</span>
+              </a>
+              <a href="fare.html" class="flex items-center px-4 py-2 text-blue-200 hover:text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+                <i class="fas fa-money-bill-wave w-6"></i>
+                <span class="ml-3">Fare Rates</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Management Section -->
+        <div class="mt-6">
+          <p class="px-4 text-xs font-semibold text-blue-300 uppercase">Management</p>
+          <div class="mt-3 space-y-2">
+             <a href="users.php" class="flex items-center px-4 py-3 text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+              <i class="fas fa-users w-6"></i>
+              <span class="ml-3">Users</span>
+            </a>
+            <a href="reports.php" class="flex items-center px-4 py-3 text-white hover:bg-[#1e4d70] rounded-lg transition-colors group">
+              <i class="fas fa-chart-bar w-6"></i>
+              <span class="ml-3">Reports</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <!-- User Profile -->
+      <div class="p-6 border-t border-[#1e4d70]">
+        <div class="flex items-center space-x-4">
+          <div class="p-2 bg-white bg-opacity-10 rounded-full">
+            <i class="fas fa-user-circle text-2xl"></i>
+          </div>
+          <div>
+            <h3 class="font-medium">Administrator</h3>
+            <a href="../../tripko-backend/config/confirm_logout.php" class="text-sm text-blue-200 hover:text-white group flex items-center mt-1">
+              <i class="fas fa-sign-out-alt mr-2"></i>
+              <span>Sign Out</span>
+            </a>
+          </div>
         </div>
       </div>
     </aside>
 
     <!-- Main content -->
     <main class="flex-1 bg-[#F3F1E7] p-6">
+      <header class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3 text-gray-900 font-normal text-base">
+      <button aria-label="Menu" class="focus:outline-none">
+            <i class="fas fa-bars text-lg"></i>
+          </button>
+           <span>Terminal Routes</span>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <input type="search" placeholder="Search" class="w-48 md:w-64 rounded-full border border-gray-400 bg-[#F3F1E7] py-1.5 px-4 text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#255D8A]" />
+          <button aria-label="Notifications" class="text-black text-xl focus:outline-none">
+            <i class="fas fa-bell"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Add Route Button -->
+      <div class="flex justify-end mb-6 mt-4">
+        <button onclick="openRouteModal()" class="bg-[#255D8A] text-white px-4 py-2 rounded-md hover:bg-[#1e4d70] transition-colors">
+          + Add Route
+        </button>
+      </div>
+
       <!-- Terminal Routes Section -->
       <section>
-        <header class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-3 text-gray-900 font-normal text-base">
-            <span>Terminal Routes</span>
-          </div>
-          <button onclick="openRouteModal()" class="bg-[#255D8A] text-white px-4 py-2 rounded-md hover:bg-[#1e4d70] transition-colors">
-            + Add Route
-          </button>
-        </header>
         <div class="bg-white rounded-lg shadow overflow-x-auto">
           <table class="w-full border-collapse">
             <thead class="bg-gray-50">
               <tr>
-                <th class="border border-gray-300 px-4 py-2 text-left">ID</th>
                 <th class="border border-gray-300 px-4 py-2 text-left">From Terminal</th>
                 <th class="border border-gray-300 px-4 py-2 text-left">From Town</th>
                 <th class="border border-gray-300 px-4 py-2 text-left">To Terminal</th>
                 <th class="border border-gray-300 px-4 py-2 text-left">To Town</th>
                 <th class="border border-gray-300 px-4 py-2 text-left">Available Types</th>
+                <th class="border border-gray-300 px-4 py-2 text-left">Status</th>
                 <th class="border border-gray-300 px-4 py-2 text-center">Actions</th>
               </tr>
             </thead>
@@ -113,36 +261,111 @@
     </main>
   </div>
 
-  <!-- Route Modal -->
-  <div id="routeModal" class="fixed inset-0 hidden">
-    <div class="bg-black bg-opacity-50 absolute inset-0"></div>
-    <div class="relative min-h-screen flex items-center justify-center p-4">
-      <div class="form-container bg-white relative z-10 p-6 rounded shadow-lg w-full max-w-md">
-        <button type="button" class="absolute right-4 top-4 text-gray-500 hover:text-gray-700" onclick="closeRouteModal()">
-          <i class="fas fa-times text-xl"></i>
+  <!-- Add Route Modal -->
+  <!-- Add Route Modal -->
+<div id="routeModal" class="fixed inset-0 hidden z-50">
+  <div class="bg-black bg-opacity-50 absolute inset-0"></div>
+  <div class="relative flex items-center justify-center min-h-screen p-4">
+    <div class="form-container bg-white relative z-10 p-8 rounded shadow-lg w-full max-w-2xl">
+     <button type="button" class="absolute right-4 top-4 text-gray-500 hover:text-gray-700" onclick="closeRouteModal()">
+      <i class="fas fa-times text-xl"></i>
+    </button>
+      
+      <form id="routeForm" onsubmit="handleRouteSubmit(event)">
+        <!-- From and To Terminal -->
+        <div class="form-row grid grid-cols-2 gap-6 mb-6">
+          <div class="form-group">
+            <label for="from-terminal" class="block text-[15px] font-medium text-gray-700 mb-2">
+              From Terminal <span class="text-red-500">*</span>
+            </label>
+            <select id="from-terminal" name="from_terminal_id" required 
+                    class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
+              <option value="" disabled selected>Select terminal</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="to-terminal" class="block text-[15px] font-medium text-gray-700 mb-2">
+              To Terminal <span class="text-red-500">*</span>
+            </label>
+            <select id="to-terminal" name="to_terminal_id" required 
+                    class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
+              <option value="" disabled selected>Select terminal</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Transport Type and Duration -->
+        <div class="form-row grid grid-cols-2 gap-6 mb-6">
+          <div class="form-group">
+            <label for="transport-type" class="block text-[15px] font-medium text-gray-700 mb-2">
+              Transport Type <span class="text-red-500">*</span>
+            </label>
+            <select id="transport-type" name="transport_type_id" required 
+                    class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
+              <option value="" disabled selected>Select type</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="duration" class="block text-[15px] font-medium text-gray-700 mb-2">
+              Travel Duration (mins) <span class="text-red-500">*</span>
+            </label>
+            <input type="number" id="duration" name="duration" required min="1"
+                   class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div class="form-group mb-6">
+          <label for="details" class="block text-[15px] font-medium text-gray-700 mb-2">
+            Route Details <span class="text-gray-400 text-[13px]">(Optional)</span>
+          </label>
+          <textarea id="details" name="details" rows="4"
+                    class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]"></textarea>
+        </div>
+
+        <!-- Form Buttons -->
+       <div class="flex justify-end space-x-2 pt-4 border-t">
+          <button type="button" 
+                  class="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 transition-colors text-[15px]" 
+                  onclick="closeRouteModal()">
+            Cancel
+          </button>
+          <button type="submit" 
+                  class="px-4 py-2 rounded-md bg-[#255D8A] text-white hover:bg-[#1e4d70] transition-colors text-[15px]">
+            Save
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Status Change Modal -->
+<div id="statusModal" class="fixed inset-0 hidden z-50">
+  <div class="bg-black bg-opacity-50 absolute inset-0"></div>
+  <div class="relative flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white relative z-10 p-6 rounded-lg shadow-lg w-full max-w-md">
+      <h3 class="text-xl font-bold mb-4">Change Status</h3>
+      <p class="mb-4">Current status: <span id="currentStatusText" class="font-semibold"></span></p>
+      <div class="space-y-3">
+        <button onclick="updateRouteStatus('active')" 
+                class="w-full py-2 px-4 rounded bg-green-600 text-white hover:bg-green-700 transition-colors">
+          Set Active
         </button>
-        <form onsubmit="handleRouteSubmit(event)">
-          <div class="mb-4">
-            <label class="block mb-1">From Terminal</label>
-            <select id="from-terminal" name="from-terminal" class="w-full border rounded px-3 py-2" required></select>
-          </div>
-          <div class="mb-4">
-            <label class="block mb-1">To Terminal</label>
-            <select id="to-terminal" name="to-terminal" class="w-full border rounded px-3 py-2" required></select>
-          </div>
-          <div class="mb-4">
-            <label class="block mb-1">Transportation Types</label>
-            <p class="text-sm text-gray-600 mb-2">Enter types separated by commas (e.g. "Ordinary Bus, Air-conditioned Van")</p>
-            <input type="text" id="route-transportation-type" name="transportation-type" class="w-full border rounded px-3 py-2" required placeholder="e.g. Ordinary Bus, Air-conditioned Van">
-          </div>
-          <div class="flex justify-end gap-2">
-            <button type="button" class="bg-gray-300 px-4 py-2 rounded" onclick="closeRouteModal()">Cancel</button>
-            <button type="submit" class="bg-[#255D8A] text-white px-4 py-2 rounded">Save</button>
-          </div>
-        </form>
+        <button onclick="updateRouteStatus('inactive')" 
+                class="w-full py-2 px-4 rounded bg-red-600 text-white hover:bg-red-700 transition-colors">
+          Set Inactive
+        </button>
+        <button onclick="closeStatusModal()" 
+                class="w-full py-2 px-4 rounded bg-gray-300 hover:bg-gray-400 transition-colors">
+          Cancel
+        </button>
       </div>
     </div>
   </div>
+</div>
 
 <script>
 let editRouteId = null;
@@ -156,94 +379,167 @@ async function loadTransportTypes() {
 }
 
 async function loadTerminalsAndTypes() {
-  // Load terminals
-  const tRes = await fetch('../../tripko-backend/api/terminal_locations/read.php');
-  const tData = await tRes.json();
-  terminals = tData.records;
-  const fromSel = document.getElementById('from-terminal');
-  const toSel = document.getElementById('to-terminal');
-  fromSel.innerHTML = '<option value="" disabled selected>Select terminal</option>';
-  toSel.innerHTML = '<option value="" disabled selected>Select terminal</option>';
-  terminals.forEach(t => {
-    fromSel.innerHTML += `<option value="${t.terminal_id}">${t.name} (${t.town})</option>`;
-    toSel.innerHTML += `<option value="${t.terminal_id}">${t.name} (${t.town})</option>`;
-  });
+  try {
+    // Load terminals
+    const tRes = await fetch('../../tripko-backend/api/terminal_locations/read.php');
+    if (!tRes.ok) throw new Error('Failed to fetch terminals');
+    const tData = await tRes.json();
+    terminals = tData.records || [];
+    
+    const fromSel = document.getElementById('from-terminal');
+    const toSel = document.getElementById('to-terminal');
+    fromSel.innerHTML = '<option value="" disabled selected>Select terminal</option>';
+    toSel.innerHTML = '<option value="" disabled selected>Select terminal</option>';
+    
+    if (terminals.length === 0) {
+      fromSel.innerHTML += '<option disabled>No terminals available</option>';
+      toSel.innerHTML += '<option disabled>No terminals available</option>';
+      return;
+    }
+
+    terminals.forEach(t => {
+      const optionHTML = `<option value="${t.terminal_id}">${t.name} (${t.town_name || t.town})</option>`;
+      fromSel.innerHTML += optionHTML;
+      toSel.innerHTML += optionHTML;
+    });
+
+    // Load transport types
+    const ttRes = await fetch('../../tripko-backend/api/transportation_type/read.php');
+    if (!ttRes.ok) throw new Error('Failed to fetch transport types');
+    const ttData = await ttRes.json();
+    transportTypes = ttData.records || [];
+
+    const typeSel = document.getElementById('transport-type');
+    typeSel.innerHTML = '<option value="" disabled selected>Select type</option>';
+    
+    if (transportTypes.length === 0) {
+      typeSel.innerHTML += '<option disabled>No transport types available</option>';
+      return;
+    }
+
+    transportTypes.forEach(tt => {
+      typeSel.innerHTML += `<option value="${tt.type_id}">${tt.name}</option>`;
+    });
+  } catch (error) {
+    console.error('Error loading data:', error);
+    alert('Failed to load necessary data. Please try again.');
+  }
 }
 
 async function loadRoutes() {
-  const res = await fetch('../../tripko-backend/api/terminal_routes/read.php');
-  const data = await res.json();
   const tbody = document.getElementById('routeTableBody');
-  tbody.innerHTML = '';
-  data.records.forEach(route => {
-    const types = route.transportation_types ? route.transportation_types.split(',') : [];
-    tbody.innerHTML += `
-      <tr>
-        <td class="border border-gray-300 px-4 py-2">${route.route_id}</td>
+  tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Loading...</td></tr>';
+  
+  try {
+    const res = await fetch('../../tripko-backend/api/terminal_routes/read.php');
+    if (!res.ok) throw new Error('Failed to fetch routes');
+    const data = await res.json();
+    
+    if (!data.records || !Array.isArray(data.records)) {
+      throw new Error('Invalid data format received from server');
+    }
+    
+    tbody.innerHTML = '';
+    
+    if (data.records.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No routes available</td></tr>';
+      return;
+    }
+    
+    data.records.forEach(route => {
+      const types = route.transportation_types ? route.transportation_types.split(',') : [];
+      const statusClass = route.status === 'inactive' ? 'bg-red-50' : '';
+      tbody.innerHTML += `
+      <tr class="${statusClass}">
         <td class="border border-gray-300 px-4 py-2">${route.from_terminal}</td>
         <td class="border border-gray-300 px-4 py-2">${route.from_town}</td>
         <td class="border border-gray-300 px-4 py-2">${route.to_terminal}</td>
         <td class="border border-gray-300 px-4 py-2">${route.to_town}</td>
         <td class="border border-gray-300 px-4 py-2">${types.join(', ') || 'None'}</td>
         <td class="border border-gray-300 px-4 py-2 text-center">
-          <button onclick='editRoute(${JSON.stringify({ id: route.route_id, types })}, ${JSON.stringify(route)})' 
-                  class="bg-green-600 text-white px-2 py-1 rounded text-sm hover:bg-green-700">
-            Edit
-          </button>
-          <button onclick="deleteRoute(${route.route_id})"
-                  class="bg-red-600 text-white px-2 py-1 rounded text-sm ml-2 hover:bg-red-700">
-            Delete
-          </button>
+          <span class="px-2 py-1 rounded-full text-xs font-medium ${
+            route.status === 'inactive' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+          }">
+            ${route.status || 'active'}
+          </span>
+        </td>
+        <td class="border border-gray-300 px-4 py-2">
+          <div class="flex justify-center gap-2">
+            <button onclick='editRoute(${JSON.stringify({ id: route.route_id, types })}, ${JSON.stringify(route)})' 
+                    class="bg-[#255d8a] text-white px-3 py-1 rounded text-sm hover:bg-[#1e4d70] min-w-[60px]">
+              Edit
+            </button>
+            <button onclick="openStatusModal(${route.route_id}, '${route.status || 'active'}')"
+                    class="${route.status === 'inactive' ? 'bg-red-600' : 'bg-green-600'} text-white px-3 py-1 rounded text-sm hover:bg-opacity-90 min-w-[60px]">
+              Status
+            </button>
+          </div>
         </td>
       </tr>
     `;
   });
+  } catch (error) {
+    console.error('Error loading routes:', error);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-4 text-red-500">
+          <div class="flex flex-col items-center">
+            <i class="fas fa-exclamation-circle text-3xl mb-2"></i>
+            <p>Failed to load routes</p>
+            <button onclick="loadRoutes()" class="mt-2 px-4 py-2 bg-[#255D8A] text-white rounded hover:bg-[#1e4d70]">
+              Try Again
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
 }
 
 async function handleRouteSubmit(event) {
   event.preventDefault();
-  const typeNames = document.getElementById('route-transportation-type').value
-    .split(',')
-    .map(t => t.trim())
-    .filter(t => t.length > 0);
-    
-  // Convert type names to IDs
-  const typeIds = typeNames.map(typeName => {
-    const foundType = transportTypes.find(t => t.type.toLowerCase() === typeName.toLowerCase());
-    if (!foundType) {
-      throw new Error(`Transportation type "${typeName}" not found. Please use existing types.`);
-    }
-    return foundType.transport_type_id;
-  });
-
-  if (typeIds.length === 0) {
-    alert('Please enter at least one valid transportation type');
-    return;
-  }
-
-  const data = {
-    origin_terminal_id: document.getElementById('from-terminal').value,
-    destination_terminal_id: document.getElementById('to-terminal').value,
-    transport_type_ids: typeIds
-  };
-
+  
   try {
-    if (editRouteId) {
-      data.route_id = editRouteId;
-      await fetch('../../tripko-backend/api/terminal_routes/update.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
-    } else {
-      await fetch('../../tripko-backend/api/terminal_routes/create.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      });
+    const fromTerminalId = document.getElementById('from-terminal').value;
+    const toTerminalId = document.getElementById('to-terminal').value;
+    const transportTypeId = document.getElementById('transport-type').value;
+    const duration = document.getElementById('duration').value;
+    const details = document.getElementById('details').value;
+
+    // Validation
+    if (!fromTerminalId || !toTerminalId || !transportTypeId || !duration) {
+      throw new Error('Please fill in all required fields');
     }
+
+    if (fromTerminalId === toTerminalId) {
+      throw new Error('From and To terminals cannot be the same');
+    }
+
+    const data = {
+      origin_terminal_id: fromTerminalId,
+      destination_terminal_id: toTerminalId,
+      transport_type_ids: [transportTypeId], // Send as array
+      duration: duration,
+      details: details
+    };
+
+    const url = editRouteId 
+      ? '../../tripko-backend/api/terminal_routes/update.php'
+      : '../../tripko-backend/api/terminal_routes/create.php';
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to save route');
+    }
+
+    await loadRoutes();
     closeRouteModal();
-    loadRoutes();
   } catch (error) {
     alert(error.message);
   }
@@ -264,14 +560,32 @@ function closeRouteModal() {
   document.getElementById('route-transportation-type').value = '';
 }
 
-function editRoute(data, route) {
-  editRouteId = data.id;
-  loadTerminalsAndTypes().then(() => {
-    document.getElementById('from-terminal').value = route.from_terminal_id;
-    document.getElementById('to-terminal').value = route.to_terminal_id;
-    document.getElementById('route-transportation-type').value = data.types.join(', ');
-    document.getElementById('routeModal').classList.remove('hidden');
-  });
+async function editRoute(data, route) {
+  try {
+    editRouteId = data.id;
+    await loadTerminalsAndTypes();
+    
+    const modal = document.getElementById('routeModal');
+    const fromTerminal = document.getElementById('from-terminal');
+    const toTerminal = document.getElementById('to-terminal');
+    const transportType = document.getElementById('transport-type');
+    const durationInput = document.getElementById('duration');
+    const detailsInput = document.getElementById('details');
+    
+    // Set values after a short delay to ensure dropdowns are populated
+    setTimeout(() => {
+      fromTerminal.value = route.from_terminal_id;
+      toTerminal.value = route.to_terminal_id;
+      transportType.value = data.types[0] || '';
+      durationInput.value = route.duration || '';
+      detailsInput.value = route.details || '';
+      
+      modal.classList.remove('hidden');
+    }, 100);
+  } catch (error) {
+    console.error('Error in editRoute:', error);
+    alert('Failed to load route details. Please try again.');
+  }
 }
 
 async function deleteRoute(id) {

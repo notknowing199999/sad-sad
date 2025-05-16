@@ -1,46 +1,86 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Prevent any output before headers
+ob_start();
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// Include your DB connection
-require_once(__DIR__ . '/../../config/db.php');
+session_start();
+require_once(__DIR__ . '/../../config/check_session.php');
 
+// Check admin session
+if (!isset($_SESSION['user_id'])) {
+    header('HTTP/1.1 401 Unauthorized');
+    ob_end_clean();
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
+// Fix path case sensitivity
+include_once __DIR__ . '/../../config/Database.php';
+include_once __DIR__ . '/../../models/Festival.php';
+
+// Initialize database and handle connection errors
 try {
+    $database = new Database();
+    $db = $database->getConnection();
+    
+    if (!$db) {
+        throw new Exception("Database connection failed");
+    }
+
+    $festival = new Festival($db);
+
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        http_response_code(405);
+        header('HTTP/1.1 405 Method Not Allowed');
+        ob_end_clean();
         echo json_encode(['success' => false, 'message' => 'Method not allowed']);
         exit;
     }
 
-    $sql = "
-      SELECT
-        f.name,
-        f.description,
-        f.date,
-        f.image_path,
-        t.town_name
-      FROM festivals AS f
-      LEFT JOIN towns AS t ON f.town_id = t.town_id
-      ORDER BY f.date DESC
-    ";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $records = [];
-    while ($row = $result->fetch_assoc()) {
-        $records[] = $row;
+    // Get festivals with error checking
+    $result = $festival->read();
+    
+    if (!$result) {
+        throw new Exception("Failed to execute query");
     }
+    
+    if($result->num_rows > 0) {
+        $festivals_arr = array();
+        $festivals_arr['records'] = array();
 
-    echo json_encode(['records' => $records]);
-} catch (Exception $e) {
-    http_response_code(500);
+        while($row = $result->fetch_assoc()) {
+            $festival_item = array(
+                'festival_id' => $row['festival_id'],
+                'name' => $row['name'],
+                'description' => $row['description'],
+                'date' => $row['date'],
+                'town_id' => $row['town_id'],
+                'town_name' => $row['town_name'],
+                'status' => $row['status'],
+                'image_path' => $row['image_path']
+            );
+
+            array_push($festivals_arr['records'], $festival_item);
+        }
+
+        header('HTTP/1.1 200 OK');
+        ob_end_clean();
+        echo json_encode($festivals_arr);
+    } else {
+        header('HTTP/1.1 404 Not Found');
+        ob_end_clean();
+        echo json_encode(['success' => false, 'message' => 'No festivals found']);
+    }
+} catch(Exception $e) {
+    error_log("Error in festival read.php: " . $e->getMessage());
+    header('HTTP/1.1 500 Internal Server Error');
+    ob_end_clean();
     echo json_encode([
         'success' => false,
-        'message' => 'Could not read festivals: ' . $e->getMessage()
+        'message' => 'Unable to fetch festivals',
+        'error' => $e->getMessage()
     ]);
 }

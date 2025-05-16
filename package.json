@@ -1,0 +1,10 @@
+{
+  "name": "tripko-system",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tailwindcss -i ./src/input.css -o ./tripko-frontend/file_css/styles.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.3.0"
+  }
+}
