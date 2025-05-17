@@ -203,18 +203,18 @@ checkAdminSession();
         <form id="accountForm">
           <div class="form-row grid grid-cols-2 gap-6 mb-6">
             <div class="form-group">
-              <label for="username" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="account_username" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Username <span class="text-red-500">*</span>
               </label>
-              <input type="text" id="username" name="username" required 
+              <input type="text" id="account_username" name="username" required 
                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
             
             <div class="form-group">
-              <label for="password" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="account_password" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Password <span class="text-red-500">*</span>
               </label>
-              <input type="password" id="password" name="password" required 
+              <input type="password" id="account_password" name="password" required 
                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
           </div>
@@ -224,14 +224,28 @@ checkAdminSession();
               <label for="user_type" class="block text-[15px] font-medium text-gray-700 mb-2">
                 User Type <span class="text-red-500">*</span>
               </label>
-              <select id="user_type" name="user_type" required 
+              <select id="user_type" name="user_type" required onchange="handleUserTypeChange()"
                       class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
                 <option value="" disabled selected>Select user type</option>
                 <option value="1">Admin</option>
                 <option value="2">Regular User</option>
+                <option value="3">Tourism Officer</option>
               </select>
             </div>
             
+            <!-- Municipality field - only shown for tourism officers -->
+            <div id="municipalityField" class="form-group hidden">
+              <label for="municipality" class="block text-[15px] font-medium text-gray-700 mb-2">
+                Municipality <span class="text-red-500">*</span>
+              </label>
+              <select id="municipality" name="town_id" 
+                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
+                <option value="" disabled selected>Select municipality</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row grid grid-cols-2 gap-6 mb-6">
             <div class="form-group">
               <label for="status" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Status <span class="text-red-500">*</span>
@@ -362,101 +376,100 @@ checkAdminSession();
         
         <h2 id="modalTitle" class="text-2xl font-medium mb-6">Edit User</h2>
         
-        <form id="userForm">
-          <div class="form-row grid grid-cols-2 gap-6 mb-6">
+        <form id="userForm">          <div class="form-row grid grid-cols-2 gap-6 mb-6">
             <div class="form-group">
-              <label for="username" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="edit_username" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Username <span class="text-red-500">*</span>
               </label>
-              <input type="text" id="username" name="username" required 
+              <input type="text" id="edit_username" name="username" required 
                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
             
             <div class="form-group">
-              <label for="password" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="edit_password" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Password <span class="text-gray-400 text-[13px]">(Leave blank to keep current)</span>
               </label>
-              <input type="password" id="password" name="password"
+              <input type="password" id="edit_password" name="password"
                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
           </div>
 
           <div class="form-row grid grid-cols-2 gap-6 mb-6">
             <div class="form-group">
-              <label for="user_type" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="edit_user_type" class="block text-[15px] font-medium text-gray-700 mb-2">
                 User Type <span class="text-red-500">*</span>
               </label>
-              <select id="user_type" name="user_type" required 
+              <select id="edit_user_type" name="user_type" required onchange="handleUserTypeChange('edit_')"
                       class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
                 <option value="" disabled selected>Select user type</option>
                 <option value="1">Admin</option>
                 <option value="2">Regular User</option>
+                <option value="3">Tourism Officer</option>
               </select>
             </div>
             
-            <div class="form-group">
-              <label for="status" class="block text-[15px] font-medium text-gray-700 mb-2">
-                Status <span class="text-red-500">*</span>
+            <!-- Municipality field - only shown for tourism officers -->
+            <div id="edit_municipalityField" class="form-group hidden">
+              <label for="edit_municipality" class="block text-[15px] font-medium text-gray-700 mb-2">
+                Municipality <span class="text-red-500">*</span>
               </label>
-              <select id="status" name="status" required 
+              <select id="edit_municipality" name="town_id" 
                       class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
-                <option value="" disabled selected>Select status</option>
-                <option value="1">Active</option>
-                <option value="2">Inactive</option>
+                <option value="" disabled selected>Select municipality</option>
               </select>
             </div>
           </div>
 
           <div class="form-row grid grid-cols-2 gap-6 mb-6">
             <div class="form-group">
-              <label for="first_name" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="edit_first_name" class="block text-[15px] font-medium text-gray-700 mb-2">
                 First Name <span class="text-red-500">*</span>
               </label>
-              <input type="text" id="first_name" name="first_name" required 
+              <input type="text" id="edit_first_name" name="first_name" required 
                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
             
             <div class="form-group">
-              <label for="last_name" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="edit_last_name" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Last Name <span class="text-red-500">*</span>
               </label>
-              <input type="text" id="last_name" name="last_name" required 
+              <input type="text" id="edit_last_name" name="last_name" required 
                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
           </div>
 
           <div class="form-row grid grid-cols-2 gap-6 mb-6">
             <div class="form-group">
-              <label for="user_profile_dob" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="edit_user_profile_dob" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Date of Birth <span class="text-red-500">*</span>
               </label>
-              <input type="date" id="user_profile_dob" name="user_profile_dob" required 
+              <input type="date" id="edit_user_profile_dob" name="user_profile_dob" required 
                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
 
             <div class="form-group">
-              <label for="email" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="edit_email" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Email <span class="text-red-500">*</span>
               </label>
-              <input type="email" id="email" name="email" required 
+              <input type="email" id="edit_email" name="email" required 
                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
           </div>
 
           <div class="form-row grid grid-cols-2 gap-6 mb-6">
             <div class="form-group">
-              <label for="contact_number" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="edit_contact_number" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Contact Number <span class="text-gray-400 text-[13px]">(Optional)</span>
               </label>
-              <input type="tel" id="contact_number" name="contact_number" 
+              <input type="tel" id="edit_contact_number" name="contact_number" 
                      class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
 
             <div class="form-group">
-              <label for="address" class="block text-[15px] font-medium text-gray-700 mb-2">
+              <label for="edit_address" class="block text-[15px] font-medium text-gray-700 mb-2">
                 Address <span class="text-gray-400 text-[13px]">(Optional)</span>
               </label>
-              <textarea id="address" name="address" rows="3" 
+              <textarea id="edit_address" name="address" rows="3" 
                        class="w-full border rounded-md px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#255D8A]"></textarea>
             </div>
           </div>
@@ -499,17 +512,21 @@ checkAdminSession();
       </div>
     </div>
   </div>
-
   <script>
-    // Initialize variables
-    let userModal;
-    let userForm;
-    let accountModal;
-    let profileModal;
-    let accountForm;
-    let profileForm;
-    let modalTitle;    // Initialize these when DOM is loaded
+    // Global variables - use var to avoid redeclaration issues
+    var userModal = null;
+    var userForm = null;
+    var accountModal = null;
+    var profileModal = null;
+    var accountForm = null;
+    var profileForm = null;
+    var modalTitle = null;
+    var currentUserId = null;
+    var currentUserId = null;
+
+    // Wait for DOM to be ready
     document.addEventListener('DOMContentLoaded', () => {
+      // Initialize DOM elements
       userModal = document.getElementById('userModal');
       userForm = document.getElementById('userForm');
       accountModal = document.getElementById('accountModal');
@@ -520,20 +537,28 @@ checkAdminSession();
 
       // Load initial data
       loadUsers();
+      
+      // Setup event listeners
+      if (userForm) {
+        userForm.addEventListener('submit', handleEditSubmit);
+      }
+      if (accountForm) {
+        accountForm.addEventListener('submit', handleCreateSubmit);
+      }
+      if (profileForm) {
+        profileForm.addEventListener('submit', handleProfileSubmit);
+      }
 
-      // Setup dropdowns
-      const transportDropdown = document.getElementById('transportDropdown');
-      const transportDropdownIcon = document.getElementById('transportDropdownIcon');
+      // Setup user type change handlers
+      const createUserType = document.getElementById('user_type');
+      const editUserType = document.getElementById('edit_user_type');
 
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (e) => {
-          if (!e.target.closest('#transportDropdown') && !e.target.closest('[onclick*="toggleTransportDropdown"]')) {
-              transportDropdown?.classList.add('hidden');
-              if (transportDropdownIcon) {
-                  transportDropdownIcon.style.transform = 'rotate(0deg)';
-              }
-          }
-      });
+      if (createUserType) {
+        createUserType.addEventListener('change', () => handleUserTypeChange(''));
+      }
+      if (editUserType) {
+        editUserType.addEventListener('change', () => handleUserTypeChange('edit_'));
+      }
     });
 
     function openModal() {
@@ -687,8 +712,6 @@ checkAdminSession();
       }
     }
 
-    let currentUserId = null;
-
     function openStatusModal(userId, currentStatus) {
       currentUserId = userId;
       const modal = document.getElementById('statusModal');
@@ -744,29 +767,31 @@ checkAdminSession();
           throw new Error('User not found');
         }
 
-        // Set form title
-        document.getElementById('modalTitle').textContent = 'Edit User';
+        // Store the current user ID
+        currentUserId = userId;
+
+        // Update form title
+        modalTitle.textContent = 'Edit User';
         
-        // Set form values
+        // Set form values using the new IDs
         const form = document.getElementById('userForm');
-        form.username.value = user.username;
-        form.password.required = false; // Password not required for edit
-        form.user_type.value = user.user_type_id;
-        form.status.value = user.user_status_id;
+        document.getElementById('edit_username').value = user.username;
+        document.getElementById('edit_user_type').value = user.user_type_id;
         
-        // Set profile information
-        if (user.first_name) form.first_name.value = user.first_name;
-        if (user.last_name) form.last_name.value = user.last_name;
-        if (user.user_profile_dob) form.user_profile_dob.value = user.user_profile_dob;
-        if (user.email) form.email.value = user.email;
-        if (user.contact_number) form.contact_number.value = user.contact_number;
+        if (user.first_name) document.getElementById('edit_first_name').value = user.first_name;
+        if (user.last_name) document.getElementById('edit_last_name').value = user.last_name;
+        if (user.user_profile_dob) document.getElementById('edit_user_profile_dob').value = user.user_profile_dob;
+        if (user.email) document.getElementById('edit_email').value = user.email;
+        if (user.contact_number) document.getElementById('edit_contact_number').value = user.contact_number;
+        if (user.address) document.getElementById('edit_address').value = user.address;
         
-        // Add user_id to form for update
-        const userIdInput = document.createElement('input');
-        userIdInput.type = 'hidden';
-        userIdInput.name = 'user_id';
-        userIdInput.value = userId;
-        form.appendChild(userIdInput);
+        // Handle municipality field
+        if (user.user_type_id === '3') {
+          handleUserTypeChange('edit_');
+          if (user.town_id) {
+            document.getElementById('edit_municipality').value = user.town_id;
+          }
+        }
         
         // Show modal
         openModal();
@@ -774,10 +799,8 @@ checkAdminSession();
         console.error('Edit error:', error);
         alert('Error: ' + error.message);
       }
-    }
-
-    // Form submission - Updated to handle both create and edit
-    form.addEventListener('submit', async (e) => {
+    }    // Form submission - Updated to handle both create and edit
+    userForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
       const isEdit = formData.has('user_id');
@@ -804,22 +827,16 @@ checkAdminSession();
         console.error('Error:', error);
         alert('Error: ' + error.message);
       }
-    });
+    });    // Debug logging function
+    async function logFormData(formData) {
+        console.log('Sending data:', {
+            username: formData.get('username'),
+            user_type: formData.get('user_type'),
+            status: formData.get('status'),
+            town_id: formData.get('town_id')
+        });
 
-    // Handle account creation
-    document.getElementById('accountForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      try {
-          const formData = new FormData(this);
-          
-          // Debug log
-          console.log('Sending data:', {
-              username: formData.get('username'),
-              user_type: formData.get('user_type'),
-              status: formData.get('status')
-          });
-
+        try {
           const response = await fetch('../../tripko-backend/api/users/create.php', {
               method: 'POST',
               body: formData,
@@ -846,11 +863,55 @@ checkAdminSession();
           } else {
               throw new Error(data.message || 'Failed to create user');
           }
-      } catch (error) {
+        } catch (error) {
           console.error('Error:', error);
           alert('Error creating user: ' + error.message);
+        }
+    }
+    // Handle account creation submission
+    async function handleAccountCreation(e) {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      
+      try {
+        const userType = formData.get('user_type');
+        
+        // Validate municipality selection for tourism officers
+        if (userType === '3' && !formData.get('town_id')) {
+          throw new Error('Please select a municipality for the tourism officer');
+        }
+        
+        const response = await fetch('../../tripko-backend/api/users/create.php', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        const result = await response.text();
+        console.log('Raw response:', result);
+        
+        let data;
+        try {
+          data = JSON.parse(result);
+        } catch (e) {
+          console.error('Failed to parse JSON response:', e);
+          throw new Error('Server returned invalid JSON');
+        }
+
+        if (data.success) {
+          alert('User created successfully!');
+          closeAccountModal();
+          location.reload();
+        } else {
+          throw new Error(data.message || 'Failed to create user');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating user: ' + error.message);
       }
-    });
+    }
 
     // Handle profile creation
     profileForm.addEventListener('submit', async (e) => {
@@ -928,6 +989,416 @@ checkAdminSession();
     if (profileForm) {
       profileForm.addEventListener('submit', handleProfileCreation);
     }
+
+    // Handle user type change
+    async function handleUserTypeChange(prefix = '') {
+      const userType = document.getElementById(prefix + 'user_type').value;
+      const municipalityField = document.getElementById(prefix + 'municipalityField');
+      const municipalitySelect = document.getElementById(prefix + 'municipality');
+      
+      if (userType === '3') { // Tourism Officer
+        municipalityField.classList.remove('hidden');
+        municipalitySelect.required = true;
+        await loadMunicipalities();
+      } else {
+        municipalityField.classList.add('hidden');
+        municipalitySelect.required = false;
+      }
+    }
+
+    // Load municipalities for selection
+    async function loadMunicipalities() {
+      try {
+        const response = await fetch('../../tripko-backend/api/towns/read.php');
+        const data = await response.json();
+        const municipalitySelect = document.getElementById('municipality');
+        
+        if (data.success && data.records && Array.isArray(data.records)) {
+          municipalitySelect.innerHTML = '<option value="" disabled selected>Select municipality</option>';
+          data.records.forEach(town => {
+            const option = document.createElement('option');
+            option.value = town.town_id;
+            option.textContent = town.name;
+            municipalitySelect.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load municipalities:', error);
+        const municipalitySelect = document.getElementById('municipality');
+        municipalitySelect.innerHTML = '<option value="" disabled selected>Error loading municipalities</option>';
+      }
+    }
+
+    // Update account form submission to include municipality
+    document.getElementById('accountForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      try {
+        const formData = new FormData(this);
+        const userType = formData.get('user_type');
+        
+        // Validate municipality selection for tourism officers
+        if (userType === '3' && !formData.get('town_id')) {
+          throw new Error('Please select a municipality for the tourism officer');
+        }
+        
+        console.log('Sending data:', {
+          username: formData.get('username'),
+          user_type: formData.get('user_type'),
+          status: formData.get('status'),
+          town_id: formData.get('town_id')
+        });
+
+        const response = await fetch('../../tripko-backend/api/users/create.php', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        const result = await response.text();
+        console.log('Raw response:', result);
+        
+        let data;
+        try {
+          data = JSON.parse(result);
+        } catch (e) {
+          console.error('Failed to parse JSON response:', e);
+          throw new Error('Server returned invalid JSON');
+        }
+
+        if (data.success) {
+          alert('User created successfully!');
+          closeAccountModal();
+          location.reload();
+        } else {
+          throw new Error(data.message || 'Failed to create user');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating user: ' + error.message);
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const createForm = document.getElementById('createUserForm');
+        const editForm = document.getElementById('editUserForm');
+
+        if (createForm) {
+            createForm.addEventListener('submit', handleCreateSubmit);
+        }
+
+        if (editForm) {
+            editForm.addEventListener('submit', handleEditSubmit);
+        }
+    });
+
+    async function handleCreateSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        // ... rest of create form submission logic ...
+    }
+
+    async function handleEditSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const userId = currentUserId; // Use the currentUserId from the parent scope
+        // ... rest of edit form submission logic ...
+    }
+
+    function openEditModal(userId) {
+        currentUserId = userId; // Set the ID when opening the modal
+        // ... rest of edit modal logic ...
+    }    async function handleUserTypeChange(prefix = '') {
+        const userType = document.getElementById(prefix + 'user_type');
+        const municipalityField = document.getElementById(prefix + 'municipalityField');
+        const municipalitySelect = document.getElementById(prefix + 'municipality');
+        
+        if (!userType || !municipalityField || !municipalitySelect) return;
+
+        if (userType.value === '3') { // Tourism Officer
+            municipalityField.classList.remove('hidden');
+            municipalitySelect.required = true;
+            
+            try {
+                // Load municipalities
+                const response = await fetch('../../tripko-backend/api/towns/read.php');
+                const data = await response.json();
+                
+                if (data.success && data.records && Array.isArray(data.records)) {
+                    municipalitySelect.innerHTML = '<option value="" disabled selected>Select municipality</option>';
+                    data.records.forEach(town => {
+                        const option = document.createElement('option');
+                        option.value = town.town_id;
+                        option.textContent = town.name;
+                        municipalitySelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load municipalities:', error);
+                municipalitySelect.innerHTML = '<option value="" disabled selected>Error loading municipalities</option>';
+            }
+        } else {
+            municipalityField.classList.add('hidden');
+            municipalitySelect.required = false;
+            municipalitySelect.value = '';
+        }
+    }
+
+    // Add event listeners for both forms
+    document.addEventListener('DOMContentLoaded', function() {
+        const createUserType = document.getElementById('user_type');
+        const editUserType = document.getElementById('edit_user_type');
+
+        if (createUserType) {
+            createUserType.addEventListener('change', () => handleUserTypeChange(''));
+            handleUserTypeChange(''); // Initialize state
+        }
+
+        if (editUserType) {
+            editUserType.addEventListener('change', () => handleUserTypeChange('edit_'));
+            handleUserTypeChange('edit_'); // Initialize state
+        }
+    });
+
+    // Form submission handlers
+    async function handleCreateSubmit(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const userType = formData.get('user_type');
+        
+        try {
+            // Basic validation
+            if (!formData.get('username')?.trim()) {
+                throw new Error('Username is required');
+            }
+            if (!formData.get('password')?.trim()) {
+                throw new Error('Password is required');
+            }
+            if (!userType) {
+                throw new Error('User type is required');
+            }
+            if (!formData.get('status')) {
+                throw new Error('Status is required');
+            }
+            
+            // Validate municipality selection for tourism officers
+            if (userType === '3' && !formData.get('town_id')) {
+                throw new Error('Please select a municipality for the tourism officer');
+            }
+            
+            const response = await fetch('../../tripko-backend/api/users/create.php', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const result = await response.text();
+            console.log('Raw response:', result);
+            
+            let data;
+            try {
+                data = JSON.parse(result);
+            } catch (e) {
+                console.error('Failed to parse server response:', result);
+                throw new Error('Invalid server response');
+            }
+
+            if (data.success) {
+                alert('User created successfully!');
+                closeAccountModal();
+                loadUsers(); // Refresh user list without page reload
+            } else {
+                throw new Error(data.message || 'Failed to create user');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error creating user: ' + error.message);
+        }
+    }
+    
+    async function handleEditSubmit(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        if (!currentUserId) {
+            console.error('No user ID for edit');
+            alert('Error: Could not determine which user to update');
+            return;
+        }
+        
+        formData.append('user_id', currentUserId);
+        
+        try {
+            // Basic validation
+            if (!formData.get('username')?.trim()) {
+                throw new Error('Username is required');
+            }
+            
+            const userType = formData.get('user_type');
+            if (!userType) {
+                throw new Error('User type is required');
+            }
+            
+            if (formData.get('password')?.trim()) {
+                // Password validation only if a new password is provided
+                if (formData.get('password').length < 6) {
+                    throw new Error('Password must be at least 6 characters long');
+                }
+            }
+            
+            // Profile information validation
+            if (!formData.get('first_name')?.trim()) {
+                throw new Error('First name is required');
+            }
+            if (!formData.get('last_name')?.trim()) {
+                throw new Error('Last name is required');
+            }
+            if (!formData.get('email')?.trim()) {
+                throw new Error('Email is required');
+            }
+            if (!formData.get('user_profile_dob')) {
+                throw new Error('Date of birth is required');
+            }
+            
+            // Validate municipality selection for tourism officers
+            if (userType === '3' && !formData.get('town_id')) {
+                throw new Error('Please select a municipality for the tourism officer');
+            }
+
+            const response = await fetch('../../tripko-backend/api/users/update.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const result = await response.text();
+            let data;
+            try {
+                data = JSON.parse(result);
+            } catch (e) {
+                console.error('Failed to parse server response:', result);
+                throw new Error('Invalid server response');
+            }
+
+            if (data.success) {
+                alert('User updated successfully!');
+                closeModal();
+                loadUsers();
+            } else {
+                throw new Error(data.message || 'Failed to update user');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error updating user: ' + error.message);
+        }
+    }    async function handleProfileSubmit(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        try {
+            // Basic validation
+            if (!formData.get('user_id')) {
+                throw new Error('Please select a user');
+            }
+            if (!formData.get('first_name')?.trim()) {
+                throw new Error('First name is required');
+            }
+            if (!formData.get('last_name')?.trim()) {
+                throw new Error('Last name is required');
+            }
+            if (!formData.get('email')?.trim()) {
+                throw new Error('Email is required');
+            }
+            if (!formData.get('user_profile_dob')) {
+                throw new Error('Date of birth is required');
+            }
+
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(formData.get('email'))) {
+                throw new Error('Please enter a valid email address');
+            }
+
+            // Contact number validation if provided
+            const contactNumber = formData.get('contact_number')?.trim();
+            if (contactNumber) {
+                const phoneRegex = /^[0-9+\-\s()]{10,}$/;
+                if (!phoneRegex.test(contactNumber)) {
+                    throw new Error('Please enter a valid contact number');
+                }
+            }
+
+            const response = await fetch('../../tripko-backend/api/users/update_profile.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const result = await response.text();
+            let data;
+            try {
+                data = JSON.parse(result);
+            } catch (e) {
+                console.error('Failed to parse server response:', result);
+                throw new Error('Invalid server response');
+            }
+
+            if (data.success) {
+                alert('Profile updated successfully!');
+                closeProfileModal();
+                loadUsers(); // Refresh the user list
+            } else {
+                throw new Error(data.message || 'Failed to update profile');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error updating profile: ' + error.message);
+        }
+    }
+
+    // Initialize event listeners when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        // ... existing DOM element initialization code ...
+
+        // Setup form submit handlers
+        if (userForm) {
+            userForm.addEventListener('submit', handleEditSubmit);
+        }
+        if (accountForm) {
+            accountForm.addEventListener('submit', handleCreateSubmit);
+        }
+        if (profileForm) {
+            profileForm.addEventListener('submit', handleProfileSubmit);
+        }
+
+        // Setup user type change handlers
+        const createUserType = document.getElementById('user_type');
+        const editUserType = document.getElementById('edit_user_type');
+
+        if (createUserType) {
+            createUserType.addEventListener('change', () => handleUserTypeChange(''));
+        }
+        if (editUserType) {
+            editUserType.addEventListener('change', () => handleUserTypeChange('edit_'));
+        }
+
+        // Load initial data
+        loadUsers();
+    });
   </script>
 </body>
 </html>

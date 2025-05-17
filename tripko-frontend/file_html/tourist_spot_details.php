@@ -14,9 +14,11 @@ if (!$result) {
     die('ERROR: Tourist spot not found.');
 }
 
-// If spot is inactive, only show to admin users
+// If spot is inactive, only allow admin users to view it
+session_start();
 if ($result['status'] === 'inactive' && !isset($_SESSION['is_admin'])) {
-    die('ERROR: This tourist spot is currently not available.');
+    header('Location: tourist_spot.php');
+    die('This tourist spot is currently not available.');
 }
 ?>
 

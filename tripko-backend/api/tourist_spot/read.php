@@ -7,60 +7,78 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-include_once '../../config/Database.php';
-include_once '../../models/TouristSpot.php';
-
-// Initialize database connection
-$database = new Database();
-$db = $database->getConnection();
-
-// Initialize TouristSpot object
-$tourist_spot = new TouristSpot($db);
+require_once '../../config/Database.php';
+require_once '../../models/TouristSpot.php';
 
 try {
-    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        header('HTTP/1.1 405 Method Not Allowed');
-        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-        exit;
-    }    
-    // Get tourist spots
-    $result = $tourist_spot->read();
+    // Initialize database connection
+    $database = new Database();
+    $conn = $database->getConnection();
     
-    if($result && $result->num_rows > 0) {
+    if (!$conn) {
+        throw new Exception("Database connection failed");
+    }
+
+    // Initialize tourist spot object
+    $tourist_spot = new TouristSpot($conn);
+    
+    // Get the user type from the session if available
+    session_start();
+    $userType = $_SESSION['user_type'] ?? null;
+    
+    // Get tourist spots based on user type
+    if ($userType === 'admin' || $userType === 'tourism_officer') {
+        $result = $tourist_spot->read();
+    } else {
+        // Regular users only see active spots
+        $result = $tourist_spot->readActive();
+    }
+    
+    if (!$result) {
+        throw new Exception("Failed to fetch tourist spots");
+    }
+    
+    // Get number of rows
+    $num = $result->num_rows;
+    
+    if ($num > 0) {
         $spots_arr = array();
         $spots_arr['records'] = array();
-
-        while($row = $result->fetch_assoc()) {
+        
+        while ($row = $result->fetch_assoc()) {
             $spot_item = array(
                 'spot_id' => $row['spot_id'],
                 'name' => $row['name'],
                 'description' => $row['description'],
-                'town_id' => $row['town_id'],
-                'town_name' => $row['town_name'] ?? '',
-                'status' => $row['status'],
-                'image_path' => $row['image_path'],
                 'category' => $row['category'],
-                'contact_info' => $row['contact_info']
+                'town_id' => $row['town_id'],
+                'town_name' => $row['town_name'],
+                'contact_info' => $row['contact_info'],
+                'image_path' => $row['image_path'],
+                'status' => $row['status'] ?? 'active',
+                'created_at' => $row['created_at'],
+                'updated_at' => $row['updated_at']
             );
-
             array_push($spots_arr['records'], $spot_item);
         }
-
-        header('HTTP/1.1 200 OK');
+        
+        http_response_code(200);
+        $spots_arr['success'] = true;
         echo json_encode($spots_arr);
     } else {
-        header('HTTP/1.1 404 Not Found');
-        echo json_encode(array('message' => 'No tourist spots found'));
+        http_response_code(200);
+        echo json_encode(array(
+            'success' => true,
+            'message' => 'No tourist spots found',
+            'records' => array()
+        ));
     }
-} catch(Exception $e) {
-    header('HTTP/1.1 500 Internal Server Error');
+} catch (Exception $e) {
+    error_log("Error in tourist spots API: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode(array(
-        'message' => 'Unable to fetch tourist spots',
+        'success' => false,
+        'message' => 'An error occurred while fetching tourist spots. Please try again later.',
         'error' => $e->getMessage()
-     ));
+    ));
 }

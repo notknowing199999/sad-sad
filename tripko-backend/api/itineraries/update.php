@@ -10,14 +10,13 @@ include_once '../../config/db.php';
 try {
     // Get posted data
     $itinerary_id = isset($_POST['itinerary_id']) ? $_POST['itinerary_id'] : die(json_encode(["success" => false, "message" => "Missing itinerary ID"]));
-    $destination = isset($_POST['destination']) ? $_POST['destination'] : null;
-    $name = isset($_POST['itinerary_name']) ? $_POST['itinerary_name'] : null;
+    $town_id = isset($_POST['destination_id']) ? $_POST['destination_id'] : null;
+    $name = isset($_POST['name']) ? $_POST['name'] : null;
     $description = isset($_POST['description']) ? $_POST['description'] : null;
     $environmental_fee = isset($_POST['environmental_fee']) ? $_POST['environmental_fee'] : null;
-    $max_visitors = isset($_POST['max_visitors']) ? $_POST['max_visitors'] : null;
 
     // Validate required fields
-    if (!$name || !$description || !$destination) {
+    if (!$name || !$description || !$town_id) {
         die(json_encode([
             "success" => false,
             "message" => "Missing required fields"
@@ -29,19 +28,17 @@ try {
 
     // Update itinerary basic info
     $stmt = $conn->prepare("UPDATE itineraries SET 
-        destination_id = ?, 
+        town_id = ?, 
         name = ?, 
         description = ?, 
-        environmental_fee = ?, 
-        max_visitors = ?
+        environmental_fee = ?
         WHERE itinerary_id = ?");
 
-    $stmt->bind_param("issdii", 
-        $destination,
+    $stmt->bind_param("isssi", 
+        $town_id,
         $name,
         $description,
         $environmental_fee,
-        $max_visitors,
         $itinerary_id
     );
 
@@ -64,7 +61,6 @@ try {
             $file_name = $_FILES['images']['name'][$key];
             $file_size = $_FILES['images']['size'][$key];
             $file_tmp = $_FILES['images']['tmp_name'][$key];
-            $file_type = $_FILES['images']['type'][$key];
             
             // Generate unique filename
             $uniqueName = uniqid() . '_' . $file_name;
@@ -74,12 +70,12 @@ try {
             if (move_uploaded_file($file_tmp, $targetFile)) {
                 $uploadedFiles[] = $uniqueName;
                 
-                // Insert image record
-                $stmt = $conn->prepare("INSERT INTO itinerary_images (itinerary_id, image_path) VALUES (?, ?)");
-                $stmt->bind_param("is", $itinerary_id, $uniqueName);
+                // Update image path in database
+                $stmt = $conn->prepare("UPDATE itineraries SET image_path = ? WHERE itinerary_id = ?");
+                $stmt->bind_param("si", $uniqueName, $itinerary_id);
                 
                 if (!$stmt->execute()) {
-                    throw new Exception("Failed to save image record");
+                    throw new Exception("Failed to update image path");
                 }
             } else {
                 throw new Exception("Failed to upload image: " . $file_name);

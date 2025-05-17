@@ -10,7 +10,7 @@ class Itinerary {
     public function read() {
         $query = "SELECT i.*, t.name as town_name 
                  FROM " . $this->table_name . " i
-                 LEFT JOIN towns t ON i.destination_id = t.town_id
+                 LEFT JOIN towns t ON i.town_id = t.town_id
                  ORDER BY i.name";
                  
         return $this->conn->query($query);

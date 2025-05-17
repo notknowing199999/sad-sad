@@ -38,7 +38,7 @@ try {
 
         while($row = $result->fetch_assoc()) {
             $itinerary_item = array(
-                'id' => $row['itinerary_id'],
+                'itinerary_id' => $row['itinerary_id'],  // Changed from 'id' to 'itinerary_id'
                 'name' => $row['name'],
                 'description' => $row['description'],
                 'destination' => $row['town_name'],

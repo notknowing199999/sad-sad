@@ -54,7 +54,9 @@ try {
     
     if (!$stmt->execute()) {
         throw new Exception("Failed to create user: " . $stmt->error);
-    }    // Get the new user's ID
+    }
+    
+    // Get the new user's ID
     $user_id = $stmt->insert_id;
     error_log("New user ID: {$user_id}");
     
@@ -62,6 +64,33 @@ try {
     $profile_stmt = $conn->prepare("INSERT INTO user_profile (user_id) VALUES (?)");
     $profile_stmt->bind_param("i", $user_id);
     $profile_stmt->execute();
+
+    // If this is a tourism officer (user_type_id = 3), create tourism office entry
+    if ($user_type_id == 3) {
+        // Validate town_id is provided
+        if (!isset($_POST['town_id']) || empty($_POST['town_id'])) {
+            throw new Exception("Municipality selection is required for tourism officers");
+        }
+
+        $town_id = $_POST['town_id'];
+        
+        // Verify town exists
+        $town_check = $conn->prepare("SELECT town_id FROM towns WHERE town_id = ?");
+        $town_check->bind_param("i", $town_id);
+        $town_check->execute();
+        if ($town_check->get_result()->num_rows === 0) {
+            throw new Exception("Selected municipality does not exist");
+        }
+        
+        // Create tourism office record
+        $office_stmt = $conn->prepare("INSERT INTO tourism_office (user_id, town_id, office_name) VALUES (?, ?, ?)");
+        $office_name = "Tourism Office"; // Can be updated later with profile info
+        $office_stmt->bind_param("iis", $user_id, $town_id, $office_name);
+        
+        if (!$office_stmt->execute()) {
+            throw new Exception("Failed to create tourism office record: " . $office_stmt->error);
+        }
+    }
 
     // Commit transaction
     $conn->commit();

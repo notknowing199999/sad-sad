@@ -43,6 +43,40 @@ $town_stmt->bind_param("i", $town_id);
 $town_stmt->execute();
 $town_result = $town_stmt->get_result();
 $town_name = $town_result->fetch_assoc()['town_name'] ?? 'Unknown Municipality';
+
+// Get tourist spots for the municipality
+$query = "SELECT ts.*, t.name as town_name 
+          FROM tourist_spots ts 
+          LEFT JOIN towns t ON ts.town_id = t.town_id 
+          WHERE ts.status = 'active' AND ts.town_id = ?
+          ORDER BY ts.name ASC";
+
+try {
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        throw new Exception("Failed to prepare query: " . $conn->error);
+    }
+
+    $stmt->bind_param("i", $town_id);
+    if (!$stmt->execute()) {
+        throw new Exception("Failed to execute query: " . $stmt->error);
+    }
+
+    $result = $stmt->get_result();
+    
+    if (!$result) {
+        throw new Exception("Failed to get query results: " . $conn->error);
+    }
+
+    if ($result->num_rows === 0) {
+        $noResults = true;
+    } else {
+        $noResults = false;
+    }
+} catch (Exception $e) {
+    error_log("Error in municipality.php: " . $e->getMessage());
+    $errorMessage = "Sorry, we encountered an error loading tourist spots. Please try again later.";
+}
 ?>
 
 <!DOCTYPE html>
@@ -304,7 +338,43 @@ $town_name = $town_result->fetch_assoc()['town_name'] ?? 'Unknown Municipality';
             text-align: center;
         }
 
-</style>
+        .error-message {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #ffeeba;
+        }
+
+        .error-message i {
+            font-size: 1.5rem;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .no-results i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .spots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+    </style>
 </head>
 <body>
 <!-- Navigation -->
@@ -382,9 +452,19 @@ $town_name = $town_result->fetch_assoc()['town_name'] ?? 'Unknown Municipality';
     ?>
 </div>
 
-    <?php if ($result->num_rows === 0): ?>
-        <div style="text-align: center; padding: 20px;">
+    <?php if ($noResults): ?>
+        <div class="no-results">
+            <i class="bx bx-search-alt"></i>
             <p>No tourist spots found for this municipality.</p>
+            <p class="text-sm mt-2">Please check back later.</p>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($errorMessage)): ?>
+        <div class="error-message">
+            <i class="bx bx-error-circle"></i>
+            <p><?php echo $errorMessage; ?></p>
+            <p class="text-sm mt-2">Please try again later.</p>
         </div>
     <?php endif; ?>
 

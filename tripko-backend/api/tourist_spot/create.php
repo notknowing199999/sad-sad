@@ -21,6 +21,11 @@ try {
     $description = $_POST['description'] ?? '';
     $category = $_POST['category'] ?? '';
     $contact_info = $_POST['contact_info'] ?? '';
+    $town_id = $_POST['town_id'] ?? '';
+    
+    if (empty($town_id)) {
+        throw new Exception('Municipality (town_id) is required');
+    }
 
     // Handle image upload (single image for simplicity)
     $image_path = null;
@@ -36,9 +41,9 @@ try {
         }
     }
 
-    // Remove town_id from the INSERT query
-    $stmt = $conn->prepare("INSERT INTO tourist_spots (name, description, category, contact_info, image_path) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssss", $name, $description, $category, $contact_info, $image_path);
+    // Add town_id to the INSERT query
+    $stmt = $conn->prepare("INSERT INTO tourist_spots (name, description, category, contact_info, image_path, town_id) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssi", $name, $description, $category, $contact_info, $image_path, $town_id);
     $stmt->execute();
 
     if ($stmt->affected_rows > 0) {

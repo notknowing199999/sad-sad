@@ -14,10 +14,17 @@ try {
         exit;
     }
 
+    // Get the required fields
     $name = $_POST['name'] ?? '';
     $description = $_POST['description'] ?? '';
-    $destination_id = $_POST['destination'] ?? '';
+    $town_id = $_POST['destination_id'] ?? ''; // We keep destination_id in frontend but map to town_id
     $environmental_fee = $_POST['environmental_fee'] ?? '';
+
+    // Validate required fields
+    if (empty($name) || empty($description) || empty($town_id)) {
+        echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+        exit;
+    }
 
     // Handle image upload (single image for simplicity)
     $image_path = null;
@@ -33,8 +40,8 @@ try {
         }
     }
 
-    $stmt = $conn->prepare("INSERT INTO itineraries (name, description, destination_id, environmental_fee, image_path) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssiss", $name, $description, $destination_id, $environmental_fee, $image_path);
+    $stmt = $conn->prepare("INSERT INTO itineraries (name, description, town_id, environmental_fee, image_path) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssiss", $name, $description, $town_id, $environmental_fee, $image_path);
     $stmt->execute();
 
     if ($stmt->affected_rows > 0) {

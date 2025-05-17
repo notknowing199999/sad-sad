@@ -370,30 +370,6 @@ if (!isset($_SESSION['user_id'])) {
       </div>
     </div>
   </div>
-  <!-- Status Change Modal -->
-  <div id="statusModal" class="fixed inset-0 hidden z-50">
-    <div class="bg-black bg-opacity-50 absolute inset-0"></div>
-    <div class="relative flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white relative z-10 p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h3 class="text-lg font-medium mb-4">Update Tourist Spot Status</h3>
-        <p class="mb-4">Current status: <span id="currentStatusText" class="font-medium"></span></p>
-        <div class="flex gap-4">
-          <button onclick="updateSpotStatus('active')" 
-                  class="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            Set Active
-          </button>
-          <button onclick="updateSpotStatus('inactive')" 
-                  class="flex-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-            Set Inactive
-          </button>
-        </div>
-        <button onclick="closeStatusModal()" 
-                class="mt-4 w-full border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
 
   <script>
     // Modal functionality and form handling
@@ -668,8 +644,17 @@ if (!isset($_SESSION['user_id'])) {
       form.name.value = spot.name || '';
       form.category.value = spot.category || '';
       form.description.value = spot.description || '';
-      form.town_id.value = spot.town_id || '';
       form.contact_info.value = spot.contact_info || '';
+      
+      // Set town_id and ensure the select option exists
+      const townSelect = form.querySelector('select[name="town_id"]');
+      if (spot.town_id) {
+        // Wait for municipalities to load if they haven't yet
+        if (townSelect.options.length <= 1) {
+          await loadMunicipalities();
+        }
+        townSelect.value = spot.town_id;
+      }
       
       // Add spot_id to form for update
       let spotIdInput = form.querySelector('input[name="spot_id"]');
@@ -719,44 +704,29 @@ if (!isset($_SESSION['user_id'])) {
 
     let currentSpotId = null;
 
-    function openStatusModal(spotId, currentStatus) {
-      currentSpotId = spotId;
-      const modal = document.getElementById('statusModal');
-      const statusText = document.getElementById('currentStatusText');
-      statusText.textContent = currentStatus || 'active';
-      statusText.className = 'font-medium ' + 
-        (currentStatus === 'inactive' ? 'text-red-600' : 'text-green-600');
-      modal.classList.remove('hidden');
+    function toggleSpotStatus(spotId, currentStatus) {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      updateSpotStatus(spotId, newStatus);
     }
 
-    function closeStatusModal() {
-      document.getElementById('statusModal').classList.add('hidden');
-      currentSpotId = null;
-    }
-
-    async function updateSpotStatus(newStatus) {
-      if (!currentSpotId) return;
-
+    async function updateSpotStatus(spotId, newStatus) {
       try {
         const response = await fetch('../../tripko-backend/api/tourist_spot/update_status.php', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            spot_id: currentSpotId,
+            spot_id: spotId,
             status: newStatus
           })
         });
-        
+
         const data = await response.json();
         if (data.success) {
-          alert(`Tourist spot status updated to ${newStatus}`);
-          closeStatusModal();
-          // Refresh both views
           loadTouristSpots();
           if (!document.getElementById('tableView').classList.contains('hidden')) {
-            loadTableView();
+            await loadTableView();
           }
         } else {
           throw new Error(data.message || 'Failed to update status');
@@ -765,11 +735,6 @@ if (!isset($_SESSION['user_id'])) {
         console.error('Error updating status:', error);
         alert('Failed to update tourist spot status: ' + error.message);
       }
-    }
-
-    // Update the existing toggleSpotStatus function to use the modal
-    function toggleSpotStatus(spotId, currentStatus) {
-      openStatusModal(spotId, currentStatus);
     }
 
     // Toggle view function
@@ -868,12 +833,31 @@ if (!isset($_SESSION['user_id'])) {
       const gridView = document.getElementById('gridView');
       const tableView = document.getElementById('tableView');
       
-      // Reload the tourist spots with the filter
-      loadTouristSpots();
-      
-      // If we're in table view, reload that too
-      if (!tableView.classList.contains('hidden')) {
-        loadTableView();
+      try {
+        // Show loading state
+        const container = !tableView.classList.contains('hidden') ? 
+          document.getElementById('spotTableBody') : 
+          document.getElementById('gridView');
+          
+        container.innerHTML = `
+          <div class="col-span-full flex justify-center items-center py-8">
+            <div class="text-center">
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#255D8A] mb-4"></div>
+              <p class="text-gray-600">Filtering tourist spots...</p>
+            </div>
+          </div>
+        `;
+
+        // Reload the tourist spots with the filter
+        loadTouristSpots();
+        
+        // If we're in table view, reload that too
+        if (!tableView.classList.contains('hidden')) {
+          loadTableView();
+        }
+      } catch (error) {
+        console.error('Error filtering tourist spots:', error);
+        showNotification('Failed to filter tourist spots. Please try again.', 'error');
       }
     }
   </script>

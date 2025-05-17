@@ -2,29 +2,44 @@
 session_start();
 
 // Database connection configuration
-$host = "localhost";     // Your database host
-$username = "root";      // Your database username
-$password = "";         // Your database password
-$database = "tripko_db"; // Your database name
+$host = "localhost";     
+$username = "root";      
+$password = "";         
+$database = "tripko_db"; 
 
-// Create connection
-$conn = new mysqli($host, $username, $password, $database);
+try {
+    // Create connection
+    $conn = new mysqli($host, $username, $password, $database);
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+    // Check connection
+    if ($conn->connect_error) {
+        throw new Exception("Connection failed: " . $conn->connect_error);
+    }
 
-// Fetch festivals with town information
-$query = "SELECT f.*, t.name as town_name 
-          FROM festivals f
-          LEFT JOIN towns t ON f.town_id = t.town_id 
-          WHERE f.date >= CURDATE()
-          ORDER BY f.date ASC";
-$result = $conn->query($query);
+    // Fetch festivals with town information
+    $query = "SELECT ts.*, t.name as town_name 
+              FROM tourist_spots ts 
+              LEFT JOIN towns t ON ts.town_id = t.town_id 
+              WHERE ts.status = 'active' AND ts.category = 'Festivals'
+              ORDER BY ts.name ASC";
+    
+    if (!$stmt = $conn->prepare($query)) {
+        throw new Exception("Query preparation failed: " . $conn->error);
+    }
 
-if (!$result) {
-    die("Query failed: " . $conn->error);
+    if (!$stmt->execute()) {
+        throw new Exception("Query execution failed: " . $stmt->error);
+    }
+
+    $result = $stmt->get_result();
+    
+    if (!$result) {
+        throw new Exception("Failed to get query results: " . $conn->error);
+    }
+
+} catch (Exception $e) {
+    error_log("Error in festivals-to-go.php: " . $e->getMessage());
+    $error = "Sorry, we encountered an error loading the festivals. Please try again later.";
 }
 ?>
 <!DOCTYPE html>
@@ -32,7 +47,7 @@ if (!$result) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TripKo Pangasinan - Places to Go</title>
+    <title>TripKo Pangasinan - Festivals</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -463,6 +478,24 @@ if (!$result) {
                 padding: 0 40px;
             }
         }
+
+        /* Error Message Styles */
+        .error-message {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error-message i {
+            font-size: 1.5em;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
@@ -507,11 +540,60 @@ if (!$result) {
     <!-- Main Content -->
     <section class="hero_content">
         <div class="title-row">
-            <h1 class="hero_title">Where Traditions Shine, and Cultures Unite</h1>
+            <h1 class="hero_title">Experience Our Vibrant Cultural Festivals</h1>
             <a href="javascript:history.back()" class="back-button">
                 <i class='bx bx-arrow-back'></i> Back
             </a>
         </div>
+
+        <?php if (isset($error)): ?>
+            <div class="error-message">
+                <i class='bx bx-error-circle'></i>
+                <p><?php echo htmlspecialchars($error); ?></p>
+            </div>
+        <?php else: ?>
+            <?php if ($result && $result->num_rows > 0): ?>
+                <div class="scroll-container">
+                    <?php while ($row = $result->fetch_assoc()): ?>
+                        <div class="card">
+                            <div class="card-inner">
+                                <div class="card-front">
+                                    <img src="<?php 
+                                        $imagePath = $row['image_path'];
+                                        if (!$imagePath || $imagePath === 'placeholder.jpg') {
+                                            echo '../../../assets/images/placeholder.jpg';
+                                        } else {
+                                            echo '../../../uploads/' . htmlspecialchars($imagePath);
+                                        }
+                                    ?>" 
+                                    alt="<?php echo htmlspecialchars($row['name']); ?>"
+                                    loading="lazy"
+                                    onerror="this.src='../../../assets/images/placeholder.jpg'">
+                                    <div class="content">
+                                        <div class="spot-name"><?php echo htmlspecialchars($row['name']); ?></div>
+                                        <div class="spot-location"><?php echo htmlspecialchars($row['town_name']); ?></div>
+                                    </div>
+                                </div>
+                                <div class="card-back">
+                                    <h3 class="spot-name"><?php echo htmlspecialchars($row['name']); ?></h3>
+                                    <p class="spot-description"><?php echo htmlspecialchars($row['description']); ?></p>
+                                    <?php if (!empty($row['contact_info'])): ?>
+                                        <div class="contact-info">
+                                            <i class='bx bxs-phone'></i> <?php echo htmlspecialchars($row['contact_info']); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                </div>
+            <?php else: ?>
+                <div class="no-results">
+                    <i class='bx bx-calendar-star' style="font-size: 2em; margin-bottom: 10px;"></i>
+                    <p>No upcoming festivals found. Please check back later.</p>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
 
         <!-- Scroll Navigation Buttons -->
         <button class="scroll-nav scroll-left" aria-label="Scroll left">
@@ -520,103 +602,48 @@ if (!$result) {
         <button class="scroll-nav scroll-right" aria-label="Scroll right">
             <i class='bx bx-chevron-right'></i>
         </button>
-
-        <div class="scroll-container">
-            <?php 
-            if ($result->num_rows > 0):
-                while ($row = $result->fetch_assoc()): 
-                    $festivalDate = strtotime($row['date']);
-                    $now = time();
-                    $diffDays = ceil(($festivalDate - $now) / (60 * 60 * 24));
-            ?>
-                <div class="card" data-name="<?php echo htmlspecialchars($row['name']); ?>" data-date="<?php echo $row['date']; ?>">
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <img src="<?php 
-                                $imagePath = $row['image_path'];
-                                if (!$imagePath || $imagePath === 'placeholder.jpg') {
-                                    echo '../../assets/images/placeholder.jpg';
-                                } else {
-                                    echo '../../../uploads/' . htmlspecialchars($imagePath);
-                                }
-                            ?>" 
-                                 alt="<?php echo htmlspecialchars($row['name']); ?>"
-                                 loading="lazy"
-                                 onerror="this.src='../../assets/images/placeholder.jpg'">
-                            <div class="content">
-                                <div class="festival-date">
-                                    <i class='bx bx-calendar'></i>
-                                    <?php echo date('F j, Y', $festivalDate); ?>
-                                </div>
-                                <div class="spot-name"><?php echo htmlspecialchars($row['name']); ?></div>
-                                <div class="spot-location"><?php echo htmlspecialchars($row['town_name']); ?></div>
-                                <div class="festival-countdown">
-                                    <?php 
-                                    if ($diffDays > 0) {
-                                        echo "Coming in " . $diffDays . " day" . ($diffDays != 1 ? "s" : "");
-                                    } else {
-                                        echo "Today!";
-                                    }
-                                    ?>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-back">
-                            <h3 class="spot-name"><?php echo htmlspecialchars($row['name']); ?></h3>
-                            <div class="festival-date">
-                                <i class='bx bx-calendar'></i>
-                                <?php echo date('F j, Y', $festivalDate); ?>
-                            </div>
-                            <div class="spot-location"><?php echo htmlspecialchars($row['town_name']); ?></div>
-                            <p class="spot-description"><?php echo htmlspecialchars($row['description']); ?></p>
-                        </div>
-                    </div>
-                </div>
-            <?php 
-                endwhile;
-            else:
-            ?>
-                <div class="no-results">
-                    <i class='bx bx-calendar-star' style="font-size: 2em; margin-bottom: 10px;"></i>
-                    <p>No upcoming festivals found. Please check back later.</p>
-                </div>
-            <?php endif; ?>
-        </div>
     </section>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Navigation Menu
+            // Loading state handling
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            let loadedImages = 0;
+            const totalImages = document.querySelectorAll('.card-front img').length;
+
+            function hideLoadingOverlay() {
+                if (loadedImages >= totalImages) {
+                    loadingOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 300);
+                }
+            }
+
+            // Image loading handling
+            document.querySelectorAll('.card-front img').forEach(img => {
+                if (img.complete) {
+                    loadedImages++;
+                    hideLoadingOverlay();
+                } else {
+                    img.addEventListener('load', () => {
+                        loadedImages++;
+                        hideLoadingOverlay();
+                    });
+                    img.addEventListener('error', () => {
+                        loadedImages++;
+                        hideLoadingOverlay();
+                    });
+                }
+            });
+
+            // Navigation menu handling
             const menuBtn = document.querySelector('.menu-btn');
             const navLinks = document.querySelector('.nav-links');
             const dropdownBtn = document.querySelector('.nav-dropdown > a');
             const dropdownContent = document.querySelector('.nav-dropdown-content');
             const dropdown = document.querySelector('.nav-dropdown');
-            
-            // Loading Overlay
-            const loadingOverlay = document.querySelector('.loading-overlay');
-            let loadedImages = 0;
-            const totalImages = document.querySelectorAll('.card-front img').length;
 
-            // Handle image loading
-            document.querySelectorAll('.card-front img').forEach(img => {
-                if (img.complete) {
-                    imageLoaded(img);
-                } else {
-                    img.addEventListener('load', () => imageLoaded(img));
-                    img.addEventListener('error', () => imageLoaded(img));
-                }
-            });
-
-            function imageLoaded(img) {
-                img.classList.add('loaded');
-                loadedImages++;
-                if (loadedImages >= totalImages) {
-                    loadingOverlay.style.display = 'none';
-                }
-            }
-
-            // Menu Interactions
             menuBtn?.addEventListener('click', () => {
                 navLinks?.classList.toggle('active');
             });
@@ -627,7 +654,7 @@ if (!$result) {
                 dropdown?.classList.toggle('active');
             });
 
-            // Close dropdown when clicking outside
+            // Close dropdowns when clicking outside
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.nav-dropdown')) {
                     dropdownContent?.classList.remove('show');
@@ -637,105 +664,42 @@ if (!$result) {
                     navLinks?.classList.remove('active');
                 }
             });
-            
-            // Card Interactions
-            const cards = document.querySelectorAll('.card');
-            let touchStartX = 0;
-            let touchEndX = 0;
 
-            cards.forEach(card => {
-                // Click to flip
-                card.addEventListener('click', () => {
-                    if (Math.abs(touchEndX - touchStartX) < 5) { // Only flip if it's a tap, not a swipe
-                        cards.forEach(c => {
-                            if (c !== card) c.classList.remove('flipped');
-                        });
-                        card.classList.toggle('flipped');
-                    }
-                });
-
-                // Touch interactions
-                card.addEventListener('touchstart', e => {
-                    touchStartX = e.changedTouches[0].screenX;
-                });
-
-                card.addEventListener('touchend', e => {
-                    touchEndX = e.changedTouches[0].screenX;
-                    const diffX = touchEndX - touchStartX;
-
-                    if (Math.abs(diffX) > 50) { // Swipe threshold
-                        card.classList.remove('flipped');
-                    }
-                });
-            });
-
-            // Scroll Navigation
+            // Scroll navigation
             const scrollContainer = document.querySelector('.scroll-container');
             const scrollLeftBtn = document.querySelector('.scroll-left');
             const scrollRightBtn = document.querySelector('.scroll-right');
             const cardWidth = 320; // Width + gap
 
-            scrollLeftBtn.addEventListener('click', () => {
-                scrollContainer.scrollBy({
-                    left: -cardWidth,
-                    behavior: 'smooth'
-                });
-            });
-
-            scrollRightBtn.addEventListener('click', () => {
-                scrollContainer.scrollBy({
-                    left: cardWidth,
-                    behavior: 'smooth'
-                });
-            });
-
-            // Show/hide scroll buttons based on scroll position
-            const updateScrollButtons = () => {
-                const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
-                scrollLeftBtn.style.display = scrollLeft > 0 ? 'flex' : 'none';
-                scrollRightBtn.style.display = 
-                    scrollLeft < (scrollWidth - clientWidth - 10) ? 'flex' : 'none';
-            };
-
-            scrollContainer.addEventListener('scroll', updateScrollButtons);
-            window.addEventListener('resize', updateScrollButtons);
-            updateScrollButtons(); // Initial check
-
-            // Keyboard Navigation
-            document.addEventListener('keydown', e => {
-                if (e.key === 'ArrowLeft') {
+            if (scrollContainer && scrollLeftBtn && scrollRightBtn) {
+                scrollLeftBtn.addEventListener('click', () => {
                     scrollContainer.scrollBy({
                         left: -cardWidth,
                         behavior: 'smooth'
                     });
-                } else if (e.key === 'ArrowRight') {
+                });
+
+                scrollRightBtn.addEventListener('click', () => {
                     scrollContainer.scrollBy({
                         left: cardWidth,
                         behavior: 'smooth'
                     });
-                }
-            });
-
-            // Update countdowns every minute
-            setInterval(() => {
-                cards.forEach(card => {
-                    const date = new Date(card.dataset.date);
-                    const now = new Date();
-                    const diffTime = date.getTime() - now.getTime();
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    const countdown = card.querySelector('.festival-countdown');
-                    
-                    if (countdown) {
-                        if (diffDays > 0) {
-                            countdown.textContent = `Coming in ${diffDays} day${diffDays !== 1 ? 's' : ''}`;
-                        } else {
-                            countdown.textContent = 'Today!';
-                        }
-                    }
                 });
-            }, 60000); // Update every minute
 
-            // Handle errors gracefully
+                // Show/hide scroll buttons based on scroll position
+                const updateScrollButtons = () => {
+                    const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
+                    scrollLeftBtn.style.display = scrollLeft > 0 ? 'flex' : 'none';
+                    scrollRightBtn.style.display = 
+                        scrollLeft < (scrollWidth - clientWidth - 10) ? 'flex' : 'none';
+                };
+
+                scrollContainer.addEventListener('scroll', updateScrollButtons);
+                window.addEventListener('resize', updateScrollButtons);
+                updateScrollButtons(); // Initial check
+            }
+
+            // Error handling for scroll container
             window.addEventListener('error', function(e) {
                 console.error('Page error:', e.error);
                 loadingOverlay.style.display = 'none';
@@ -744,4 +708,11 @@ if (!$result) {
     </script>
 </body>
 </html>
-<?php $conn->close(); ?>
+<?php 
+if (isset($stmt)) {
+    $stmt->close();
+}
+if (isset($conn)) {
+    $conn->close();
+}
+?>

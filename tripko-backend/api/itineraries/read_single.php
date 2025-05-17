@@ -12,13 +12,10 @@ try {
     ]));
 
     // Prepare query
-    $query = "SELECT i.*, t.name as destination_name, 
-              GROUP_CONCAT(ii.image_path) as image_paths
+    $query = "SELECT i.*, t.name as destination_name
               FROM itineraries i 
-              LEFT JOIN towns t ON i.destination_id = t.town_id
-              LEFT JOIN itinerary_images ii ON i.itinerary_id = ii.itinerary_id
-              WHERE i.itinerary_id = ?
-              GROUP BY i.itinerary_id";
+              LEFT JOIN towns t ON i.town_id = t.town_id
+              WHERE i.itinerary_id = ?";
 
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $id);
@@ -29,14 +26,6 @@ try {
         if ($result->num_rows > 0) {
             $itinerary = $result->fetch_assoc();
             
-            // Convert image_paths string to array if exists
-            if ($itinerary['image_paths']) {
-                $itinerary['images'] = explode(',', $itinerary['image_paths']);
-                unset($itinerary['image_paths']); // Remove the concatenated string
-            } else {
-                $itinerary['images'] = [];
-            }
-
             echo json_encode([
                 "success" => true,
                 "itinerary" => $itinerary

@@ -188,9 +188,9 @@ require_once('../../tripko-backend/config/check_session.php');
               <tr>
                 <th class="border border-gray-300 px-4 py-2 text-left">Title</th>
                 <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
-                <th class="border border-gray-300 px-4 py-2 text-left">Duration</th>
-                <th class="border border-gray-300 px-4 py-2 text-left">Tourist Spots</th>
-                <th class="border border-gray-300 px-4 py-2 text-left">Budget</th>
+                <th class="border border-gray-300 px-4 py-2 text-left">Municipality</th>
+                <th class="border border-gray-300 px-4 py-2 text-left">Environmental Fee</th>
+                <th class="border border-gray-300 px-4 py-2 text-center">Status</th>
                 <th class="border border-gray-300 px-4 py-2 text-center">Actions</th>
               </tr>
             </thead>
@@ -217,20 +217,20 @@ require_once('../../tripko-backend/config/check_session.php');
         <form id="itineraryForm" enctype="multipart/form-data">
           <div class="form-row grid grid-cols-2 gap-6 mb-6">
             <div class="form-group">
-              <label for="municipality" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="destination_id" class="block text-sm font-medium text-gray-700 mb-2">
                 Municipality <span class="text-red-500">*</span>
               </label>
-              <select id="municipality" name="municipality" required 
+              <select id="destination_id" name="destination_id" required 
                       class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
                 <option value="" selected disabled>Select municipality</option>
               </select>
             </div>
             
             <div class="form-group">
-              <label for="itinerary_name" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
                 Itinerary Name <span class="text-red-500">*</span>
               </label>
-              <input type="text" id="itinerary_name" name="itinerary_name" required 
+              <input type="text" id="name" name="name" required 
                      class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
           </div>
@@ -248,17 +248,9 @@ require_once('../../tripko-backend/config/check_session.php');
               <label for="environmental_fee" class="block text-sm font-medium text-gray-700 mb-2">
                 Environmental Fee <span class="text-gray-400 text-xs">(Optional)</span>
               </label>
-              <input type="number" id="environmental_fee" name="environmental_fee" step="0.01" min="0"
+              <input type="text" id="environmental_fee" name="environmental_fee"
                      class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#255D8A]"
                      placeholder="Enter amount">
-            </div>
-            
-            <div class="form-group">
-              <label for="max_visitors" class="block text-sm font-medium text-gray-700 mb-2">
-                Maximum Visitors <span class="text-red-500">*</span>
-              </label>
-              <input type="number" id="max_visitors" name="max_visitors" required min="1"
-                     class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#255D8A]">
             </div>
           </div>
   
@@ -393,6 +385,11 @@ async function loadItineraries() {
     tableBody.innerHTML = '';
     if (data && data.records && Array.isArray(data.records)) {
       data.records.forEach(itinerary => {
+        // Format environmental fee once for both views
+        const environmental_fee = itinerary.environmental_fee 
+          ? `₱${parseFloat(itinerary.environmental_fee).toFixed(2)}` 
+          : 'No fee';
+
         // Grid view
         gridContainer.innerHTML += `
           <div class="rounded-lg overflow-hidden border border-gray-200 shadow-md bg-white flex flex-col h-full transition-transform hover:scale-105 hover:shadow-lg">
@@ -403,12 +400,12 @@ async function loadItineraries() {
             </div>
             <div class="flex-1 flex flex-col p-4">
               <div class="mb-2">
-                <span class="inline-block bg-[#255D8A] text-white text-xs px-3 py-1 rounded-full font-semibold mb-2">${itinerary.destination_name || 'Unknown'}</span>
+                <span class="inline-block bg-[#255D8A] text-white text-xs px-3 py-1 rounded-full font-semibold mb-2">${itinerary.destination || 'Unknown'}</span>
               </div>
               <h3 class="text-lg font-bold mb-1 text-[#255D8A]">${itinerary.name}</h3>
               <p class="text-sm text-gray-700 mb-2 line-clamp-3">${itinerary.description}</p>
               <p class="text-xs text-gray-500 mt-auto flex items-center">
-                <i class="fas fa-leaf mr-1"></i>${itinerary.environmental_fee || 'No environmental fee'}
+                <i class="fas fa-leaf mr-1"></i>${environmental_fee}
               </p>
             </div>
           </div>
@@ -419,18 +416,23 @@ async function loadItineraries() {
           <tr class="hover:bg-gray-100 transition-colors">
             <td class="border border-gray-300 px-4 py-2">${itinerary.name}</td>
             <td class="border border-gray-300 px-4 py-2 line-clamp-2">${itinerary.description}</td>
-            <td class="border border-gray-300 px-4 py-2">${itinerary.duration || 'N/A'}</td>
-            <td class="border border-gray-300 px-4 py-2">${itinerary.tourist_spots || 'N/A'}</td>
-            <td class="border border-gray-300 px-4 py-2">${itinerary.budget || 'N/A'}</td>
+            <td class="border border-gray-300 px-4 py-2">${itinerary.destination || 'N/A'}</td>
+            <td class="border border-gray-300 px-4 py-2">${environmental_fee}</td>  
+            <td class="border border-gray-300 px-4 py-2 text-center">
+              <span class="inline-block px-2 py-1 text-xs rounded-full 
+                          ${itinerary.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                ${itinerary.status || 'Active'}
+              </span>
+            </td>
             <td class="border border-gray-300 px-4 py-2 text-center">
               <div class="flex justify-center gap-2">
                 <button onclick="editItinerary(${itinerary.itinerary_id})" 
                         class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
                   Edit
                 </button>
-                <button onclick="toggleItineraryStatus(${itinerary.itinerary_id}, '${itinerary.status}')" 
-                        class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
-                  Set Status
+                <button onclick="toggleItineraryStatus(${itinerary.itinerary_id}, '${itinerary.status || 'active'}')" 
+                        class="${itinerary.status === 'inactive' ? 'bg-green-600' : 'bg-red-600'} text-white px-3 py-1 rounded text-sm hover:${itinerary.status === 'inactive' ? 'bg-green-700' : 'bg-red-700'}">
+                  ${itinerary.status === 'inactive' ? 'Activate' : 'Deactivate'}
                 </button>
               </div>
             </td>
@@ -504,115 +506,90 @@ async function loadDestinations() {
 }
 
 // Edit itinerary function
-  async function editItinerary(id) {
-    try {
-      const response = await fetch(`../../tripko-backend/api/itineraries/read_single.php?id=${id}`);
-      const data = await response.json();
-      if (data.success) {
-        const itinerary = data.itinerary;
-        // Populate form fields
-        document.getElementById('destination').value = itinerary.destination_id;
-        document.getElementById('itinerary_name').value = itinerary.name;
-        document.getElementById('description').value = itinerary.description;
-        document.getElementById('environmental_fee').value = itinerary.environmental_fee || '';
-        document.getElementById('max_visitors').value = itinerary.max_visitors || '';
-        
-        // Add itinerary ID to form for update
-        let idInput = document.getElementById('itineraryId');
-        if (!idInput) {
-          idInput = document.createElement('input');
-          idInput.type = 'hidden';
-          idInput.id = 'itineraryId';
-          idInput.name = 'itinerary_id';
-          document.getElementById('itineraryForm').appendChild(idInput);
-        }
-        idInput.value = id;
-        
-        openModal();
-      }
-    } catch (error) {
-      console.error('Error loading itinerary:', error);
-      alert('Failed to load itinerary details');
-    }
-  }
-
-  // Toggle itinerary status
-  async function toggleItineraryStatus(id, currentStatus) {
-    try {
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      const response = await fetch('../../tripko-backend/api/itineraries/update_status.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          itinerary_id: id,
-          status: newStatus
-        })
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        alert(`Itinerary status updated to ${newStatus}`);
-        loadItineraries(); // Reload the list
-      } else {
-        throw new Error(data.message || 'Failed to update status');
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Failed to update itinerary status');
-    }
-  }
-
-// Initialize page
-document.addEventListener('DOMContentLoaded', () => {
-  loadMunicipalities();
-  loadItineraries();
-});
-
-// Load municipalities for the select dropdown
-async function loadMunicipalities() {
+async function editItinerary(id) {
   try {
-    const response = await fetch('../../tripko-backend/api/towns/read.php');
+    const response = await fetch(`../../tripko-backend/api/itineraries/read_single.php?id=${id}`);
     const data = await response.json();
-    const municipalitySelect = document.getElementById('municipality');
-    
-    if (data.success && data.records && Array.isArray(data.records)) {
-      data.records.forEach(town => {
-        const option = document.createElement('option');
-        option.value = town.town_id;
-        option.textContent = town.name;
-        municipalitySelect.appendChild(option);
-      });
+    if (data.success && data.itinerary) {
+      const itinerary = data.itinerary;
+      // Populate form fields
+      document.getElementById('destination_id').value = itinerary.destination_id;
+      document.getElementById('name').value = itinerary.name;
+      document.getElementById('description').value = itinerary.description;
+      document.getElementById('environmental_fee').value = itinerary.environmental_fee || '';
+      
+      // Add itinerary ID to form for update
+      let idInput = document.getElementById('itineraryId');
+      if (!idInput) {
+        idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.id = 'itineraryId';
+        idInput.name = 'itinerary_id';
+        document.getElementById('itineraryForm').appendChild(idInput);
+      }
+      idInput.value = id;
+      
+      openModal();
     } else {
-      throw new Error('Invalid data format received from server');
+      throw new Error(data.message || 'Failed to load itinerary details');
     }
   } catch (error) {
-    console.error('Failed to load municipalities:', error);
-    document.getElementById('municipality').innerHTML = 
-      '<option value="" disabled selected>Error loading municipalities</option>';
+    console.error('Error loading itinerary:', error);
+    alert('Failed to load itinerary details: ' + error.message);
+  }
+}
+
+// Toggle itinerary status
+async function toggleItineraryStatus(itineraryId, currentStatus) {
+  try {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const response = await fetch('../../tripko-backend/api/itineraries/update_status.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        itinerary_id: itineraryId,
+        status: newStatus
+      })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      loadItineraries(); // Reload the list to show updated status
+    } else {
+      throw new Error(data.message || 'Failed to update status');
+    }
+  } catch (error) {
+    console.error('Error updating status:', error);
+    alert('Failed to update itinerary status: ' + error.message);
   }
 }
 
 // Form submission handler
 document.getElementById('itineraryForm').addEventListener('submit', async function(e) {
   e.preventDefault();
-
   const formData = new FormData(this);
+  const isEdit = formData.get('itinerary_id') ? true : false;
   
   try {
-    const response = await fetch('../../tripko-backend/api/itinerary/create.php', {
+    const endpoint = isEdit ? 
+      '../../tripko-backend/api/itineraries/update.php' : 
+      '../../tripko-backend/api/itineraries/create.php';
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       body: formData
     });
 
     const data = await response.json();
     if (data.success) {
-      alert('Itinerary created successfully!');
+      alert(isEdit ? 'Itinerary updated successfully!' : 'Itinerary created successfully!');
       closeModal();
       loadItineraries();
+      this.reset();
     } else {
-      throw new Error(data.message || 'Failed to create itinerary');
+      throw new Error(data.message || `Failed to ${isEdit ? 'update' : 'create'} itinerary`);
     }
   } catch (error) {
     console.error('Save error:', error);

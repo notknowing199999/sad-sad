@@ -58,4 +58,49 @@ function isAdmin() {
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
 }
+
+function isTourismOfficer() {
+    return isset($_SESSION['user_type_id']) && $_SESSION['user_type_id'] == 3;
+}
+
+function checkTourismOfficerSession() {
+    checkSession(3); // 3 is tourism officer type
+    
+    // Verify town_id is set for tourism officers
+    if (!isset($_SESSION['town_id'])) {
+        $database = new Database();
+        $conn = $database->getConnection();
+        
+        if ($conn) {
+            // Get town assignment from user table
+            $query = "SELECT u.town_id, t.name as town_name 
+                     FROM user u
+                     LEFT JOIN towns t ON u.town_id = t.town_id 
+                     WHERE u.user_id = ? AND u.user_type_id = 3";
+            $stmt = $conn->prepare($query);
+            if ($stmt) {
+                $stmt->bind_param("i", $_SESSION['user_id']);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($row = $result->fetch_assoc()) {
+                    if ($row['town_id']) {
+                        $_SESSION['town_id'] = $row['town_id'];
+                        $_SESSION['town_name'] = $row['town_name'];
+                    } else {
+                        session_destroy();
+                        header("Location: ../tripko-frontend/file_html/SignUp_LogIn_Form.php?error=no_town");
+                        exit();
+                    }
+                }
+                $stmt->close();
+            }
+        }
+        
+        if (!isset($_SESSION['town_id'])) {
+            session_destroy();
+            header("Location: ../tripko-frontend/file_html/SignUp_LogIn_Form.php?error=no_town");
+            exit();
+        }
+    }
+}
 ?>
